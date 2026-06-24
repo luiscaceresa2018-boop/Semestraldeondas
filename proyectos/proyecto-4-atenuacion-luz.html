@@ -1,0 +1,1084 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Atenuación de la iluminancia por distancia y materiales</title>
+  <style>
+    :root{
+      --ink:#111;
+      --muted:#666;
+      --line:#d9d9d9;
+      --soft:#f7f7f7;
+      --paper:#fff;
+      --glass:#8ecae6;
+      --paperMat:#f3ead4;
+      --fabric:#b087b9;
+      --cotton:#f8f8f8;
+      --sponge:#f2c84b;
+      --cardboard:#b8793f;
+    }
+
+    *{box-sizing:border-box;margin:0;padding:0;}
+
+    body{
+      min-height:100vh;
+      background:#fff;
+      color:var(--ink);
+      font-family:"Times New Roman", Times, serif;
+      overflow-x:hidden;
+    }
+
+    button,select,input{font-family:"Times New Roman", Times, serif;}
+
+    .page{
+      width:min(1180px,100%);
+      margin:0 auto;
+      padding:26px 18px 30px;
+    }
+
+    .main-title{
+      text-align:center;
+      font-size:clamp(28px,4vw,52px);
+      line-height:1.02;
+      font-weight:400;
+      letter-spacing:-.8px;
+      margin:4px auto 22px;
+    }
+
+    .sim{
+      border:1px solid #ededed;
+      min-height:740px;
+      background:#fff;
+      display:grid;
+      grid-template-rows:auto 430px auto;
+    }
+
+    .tabs{
+      display:flex;
+      justify-content:center;
+      gap:34px;
+      padding:18px 12px 8px;
+    }
+
+    .tab{
+      border:0;
+      background:transparent;
+      color:#777;
+      font-size:20px;
+      padding:8px 0;
+      border-bottom:1px solid transparent;
+      cursor:pointer;
+      transition:.18s ease;
+    }
+
+    .tab.active,
+    .tab:hover{
+      color:#111;
+      border-bottom-color:#111;
+    }
+
+    .scene{
+      position:relative;
+      height:430px;
+      overflow:hidden;
+      user-select:none;
+      touch-action:none;
+      border-top:1px solid #f2f2f2;
+      border-bottom:1px solid #f2f2f2;
+      background:
+        linear-gradient(#fff,#fff),
+        repeating-linear-gradient(0deg, transparent 0 23px, rgba(0,0,0,.04) 24px),
+        repeating-linear-gradient(90deg, transparent 0 23px, rgba(0,0,0,.04) 24px);
+      background-blend-mode:normal;
+    }
+
+    .scene.hidden,.panel.hidden{display:none;}
+
+    .axis{
+      position:absolute;
+      left:7%;
+      right:7%;
+      bottom:88px;
+      height:1px;
+      background:#111;
+      z-index:10;
+    }
+
+    .source-point{
+      position:absolute;
+      bottom:82px;
+      width:14px;
+      height:14px;
+      margin-left:-7px;
+      border-radius:50%;
+      background:#fff;
+      border:2px solid #111;
+      z-index:20;
+    }
+
+    .source-point::before{
+      content:"";
+      position:absolute;
+      left:10px;
+      top:50%;
+      width:235px;
+      height:95px;
+      transform:translateY(-50%);
+      background:radial-gradient(ellipse at left, rgba(0,0,0,.12), transparent 68%);
+      pointer-events:none;
+    }
+
+    .source-zero-mark{
+      position:absolute;
+      bottom:76px;
+      width:1px;
+      height:24px;
+      background:#111;
+      z-index:19;
+    }
+
+    .lux-readout{
+      position:absolute;
+      transform:translateX(-50%);
+      bottom:250px;
+      font-size:34px;
+      line-height:1;
+      font-weight:400;
+      color:#111;
+      z-index:40;
+      pointer-events:none;
+      white-space:nowrap;
+    }
+
+    .sensor{
+      position:absolute;
+      bottom:101px;
+      width:90px;
+      height:90px;
+      transform:translateX(-50%);
+      cursor:grab;
+      z-index:32;
+      display:grid;
+      place-items:center;
+      touch-action:none;
+    }
+
+    .sensor:active{cursor:grabbing;}
+    .sensor.fixed{cursor:default;}
+
+    .sensor img{
+      max-width:86px;
+      max-height:86px;
+      object-fit:contain;
+      display:block;
+      pointer-events:none;
+      user-select:none;
+      -webkit-user-drag:none;
+    }
+
+    .sensor-fallback{
+      width:16px;
+      height:16px;
+      border-radius:50%;
+      border:2px solid #111;
+      background:#fff;
+      display:none;
+    }
+
+    .distance-guide{
+      position:absolute;
+      bottom:88px;
+      height:1px;
+      background:#999;
+      z-index:11;
+      pointer-events:none;
+    }
+
+    .distance-value{
+      position:absolute;
+      transform:translateX(-50%);
+      bottom:48px;
+      font-size:18px;
+      color:#111;
+      z-index:22;
+      pointer-events:none;
+    }
+
+    .ruler{
+      position:absolute;
+      left:7%;
+      right:7%;
+      bottom:18px;
+      height:58px;
+      z-index:30;
+    }
+
+    .ruler-line{
+      position:absolute;
+      left:0;
+      right:0;
+      top:17px;
+      height:1px;
+      background:#111;
+    }
+
+    .tick{
+      position:absolute;
+      top:11px;
+      width:1px;
+      height:12px;
+      background:#aaa;
+    }
+
+    .tick.major{
+      top:6px;
+      height:22px;
+      background:#111;
+    }
+
+    .rlabel{
+      position:absolute;
+      top:32px;
+      transform:translateX(-50%);
+      font-size:14px;
+      color:#444;
+      white-space:nowrap;
+    }
+
+    .unit-label{
+      position:absolute;
+      right:-54px;
+      top:32px;
+      transform:none;
+      font-size:15px;
+      color:#444;
+      letter-spacing:.2px;
+    }
+
+    .material-sheet{
+      position:absolute;
+      bottom:90px;
+      width:74px;
+      height:210px;
+      transform:translateX(-50%);
+      border-radius:10px;
+      z-index:24;
+      border:1px solid rgba(0,0,0,.18);
+      overflow:hidden;
+    }
+
+    .material-sheet.glass{
+      background:linear-gradient(125deg, rgba(255,255,255,.2) 0 32%, rgba(255,255,255,.8) 33% 42%, rgba(142,202,230,.45) 43% 100%);
+      border-color:rgba(28,103,132,.42);
+    }
+
+    .material-sheet.paper{
+      background:linear-gradient(135deg,#fffaf0,#efe3c8);
+      border-color:#d5c7a8;
+    }
+
+    .material-sheet.fabric{
+      background:
+        repeating-linear-gradient(45deg, rgba(255,255,255,.18) 0 4px, transparent 4px 9px),
+        repeating-linear-gradient(-45deg, rgba(0,0,0,.08) 0 3px, transparent 3px 8px),
+        var(--fabric);
+      border-color:#76537f;
+    }
+
+    .material-sheet.cotton{
+      background:
+        radial-gradient(circle at 18% 24%, #fff 0 9px, transparent 10px),
+        radial-gradient(circle at 70% 42%, #fff 0 10px, transparent 11px),
+        radial-gradient(circle at 42% 72%, #fff 0 11px, transparent 12px),
+        #eeeeee;
+      background-size:38px 38px,42px 42px,46px 46px,auto;
+      border-color:#cfcfcf;
+    }
+
+    .material-sheet.sponge{
+      background:
+        radial-gradient(circle at 18% 20%, rgba(255,255,255,.7) 0 3px, transparent 4px),
+        radial-gradient(circle at 70% 44%, rgba(0,0,0,.12) 0 3px, transparent 4px),
+        radial-gradient(circle at 48% 74%, rgba(255,255,255,.55) 0 3px, transparent 4px),
+        var(--sponge);
+      background-size:28px 28px,35px 35px,32px 32px,auto;
+      border-color:#b28c14;
+    }
+
+    .material-sheet.cardboard{
+      background:
+        repeating-linear-gradient(90deg, rgba(90,45,15,.18) 0 5px, rgba(255,255,255,.2) 5px 11px),
+        var(--cardboard);
+      border-color:#7e4c21;
+    }
+
+    .material-name{
+      position:absolute;
+      transform:translateX(-50%);
+      bottom:314px;
+      font-size:22px;
+      font-weight:400;
+      color:#111;
+      z-index:35;
+      white-space:nowrap;
+    }
+
+    .fixed-note{
+      position:absolute;
+      bottom:48px;
+      left:50%;
+      transform:translateX(-50%);
+      font-size:18px;
+      color:#111;
+      z-index:31;
+      white-space:nowrap;
+    }
+
+    .controls{
+      display:grid;
+      grid-template-columns:minmax(320px,.9fr) minmax(420px,1.1fr);
+      gap:18px;
+      padding:18px;
+    }
+
+    .panel{
+      min-width:0;
+    }
+
+    .control-row{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      align-items:center;
+      margin-bottom:12px;
+    }
+
+    .btn,.select{
+      border:1px solid #111;
+      background:#fff;
+      color:#111;
+      font-size:17px;
+      padding:10px 14px;
+      cursor:pointer;
+      min-height:42px;
+    }
+
+    .btn.primary{
+      background:#111;
+      color:#fff;
+    }
+
+    .btn:hover,.select:hover{
+      transform:translateY(-1px);
+    }
+
+    .equation{
+      min-height:42px;
+      font-size:18px;
+      line-height:1.25;
+      padding:7px 0 12px;
+      color:#111;
+      border-bottom:1px solid #eee;
+      margin-bottom:10px;
+    }
+
+    .table-wrap{
+      max-height:230px;
+      overflow:auto;
+      border-top:1px solid #eee;
+    }
+
+    table{
+      width:100%;
+      border-collapse:collapse;
+      font-size:15px;
+    }
+
+    th,td{
+      padding:9px 7px;
+      border-bottom:1px solid #eee;
+      text-align:left;
+      white-space:nowrap;
+    }
+
+    th{
+      font-weight:400;
+      color:#555;
+      position:sticky;
+      top:0;
+      background:#fff;
+      z-index:1;
+    }
+
+    .chart-shell{
+      width:100%;
+      height:520px;
+      background:#fff;
+    }
+
+    canvas{width:100%;height:100%;display:block;}
+
+    @media(max-width:900px){
+      .sim{grid-template-rows:auto 430px auto;}
+      .controls{grid-template-columns:1fr;}
+      .main-title{font-size:32px;}
+      .tabs{gap:26px;}
+      .chart-shell{height:500px;}
+      .lux-readout{font-size:30px;}
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <h1 class="main-title">Atenuación de la iluminancia por distancia y materiales</h1>
+
+    <section class="sim">
+      <nav class="tabs" aria-label="Fases del simulador">
+        <button class="tab active" data-phase="distance">Distancia</button>
+        <button class="tab" data-phase="materials">Materiales</button>
+      </nav>
+
+      <section class="scene" id="distanceScene">
+        <div class="axis"></div>
+        <div class="source-zero-mark" id="zeroMarkDistance"></div>
+        <div class="source-point" id="sourceDistance"></div>
+        <div class="distance-guide" id="distanceGuide"></div>
+        <div class="lux-readout" id="luxDistance">900 lux</div>
+        <div class="sensor" id="sensorDistance" title="">
+          <!-- Reemplaza este archivo por tu imagen del sensor BH1750 -->
+          <img id="sensorImgDistance" src="../assets/sensores/bh1750.png?v=4" alt="Sensor BH1750" draggable="false" />
+          <div class="sensor-fallback" id="fallbackDistance"></div>
+        </div>
+        <div class="distance-value" id="distanceValue">30,0 cm</div>
+        <div class="ruler" id="rulerDistance"><div class="ruler-line"></div><div class="unit-label">(cm)</div></div>
+      </section>
+
+      <section class="scene hidden" id="materialsScene">
+        <div class="axis"></div>
+        <div class="source-zero-mark" id="zeroMarkMaterial"></div>
+        <div class="source-point" id="sourceMaterial"></div>
+        <div class="material-sheet paper" id="materialSheet"></div>
+        <div class="material-name" id="materialName">Hoja de papel</div>
+        <div class="lux-readout" id="luxMaterial">420 lux</div>
+        <div class="sensor fixed" id="sensorMaterial">
+          <!-- Reemplaza este archivo por tu imagen del sensor BH1750 -->"
+           <img 
+    id="sensorImgMaterial" 
+    src="../assets/sensores/bh1750.png?v=5" 
+    alt="Sensor BH1750"
+    onerror="this.style.display='none'; document.getElementById('fallbackMaterial').style.display='block';"
+  />
+  <div class="sensor-fallback" id="fallbackMaterial"></div>
+</div>
+          <div class="sensor-fallback" id="fallbackMaterial"></div>
+        </div>
+        <div class="fixed-note">5 cm + 5 cm</div>
+        <div class="ruler" id="rulerMaterial"><div class="ruler-line"></div><div class="unit-label">(cm)</div></div>
+      </section>
+
+      <section class="controls">
+        <div class="panel" id="distancePanel">
+          <div class="control-row">
+            <button class="btn primary" id="saveDistance">Registrar</button>
+            <button class="btn" id="clearDistance">Limpiar</button>
+            <select class="select" id="distanceChartMode">
+              <option value="normal">E vs r</option>
+              <option value="linear">E vs 1/r²</option>
+            </select>
+          </div>
+          <div class="equation" id="distanceEquation">Registra al menos dos distancias.</div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>r (cm)</th>
+                  <th>E₁ (lux)</th>
+                  <th>E₂ (lux)</th>
+                  <th>E₃ (lux)</th>
+                  <th>Promedio</th>
+                  <th>1/r²</th>
+                </tr>
+              </thead>
+              <tbody id="distanceTable"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="chart-shell">
+            <canvas id="chart" width="980" height="700"></canvas>
+          </div>
+        </div>
+
+        <div class="panel hidden" id="materialsPanel">
+          <div class="control-row">
+            <select class="select" id="materialSelect">
+              <option value="glass">Vidrio</option>
+              <option value="paper" selected>Hoja de papel</option>
+              <option value="fabric">Tela</option>
+              <option value="cotton">Algodón</option>
+              <option value="sponge">Esponja</option>
+              <option value="cardboard">Cartón</option>
+            </select>
+            <button class="btn primary" id="saveMaterial">Registrar</button>
+            <button class="btn" id="clearMaterials">Limpiar</button>
+          </div>
+          <div class="equation" id="materialEquation">Resultado: registra un material.</div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Material</th>
+                  <th>E₀ (lux)</th>
+                  <th>Eₘ (lux)</th>
+                  <th>T (%)</th>
+                  <th>A<sub>ob</sub></th>
+                </tr>
+              </thead>
+              <tbody id="materialsTable"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <script>
+    const state = {
+      phase:'distance',
+      r:30,
+      distanceData:{},
+      materialData:{},
+      currentMaterial:'paper'
+    };
+
+    const minR = 5;
+    const maxR = 100;
+    const stepR = 0.5;
+
+    // Modelo de iluminancia simulado: E = k/r^2 + Eamb. r en cm.
+    const Eambient = 8.5;
+    const kLux = 80000;
+
+    const materials = {
+      // Transmitancia ajustada según observación experimental:
+      // vidrio atenúa poco; papel, algodón y cartón casi bloquean la luz;
+      // tela/pañuelo bloquea mucho; esponja bloquea menos que la tela.
+      glass:{label:'Vidrio', cls:'glass', T:0.88, color:'#8ecae6'},
+      paper:{label:'Hoja de papel', cls:'paper', T:0.02, color:'#d8bd7a'},
+      fabric:{label:'Tela', cls:'fabric', T:0.05, color:'#b087b9'},
+      cotton:{label:'Algodón', cls:'cotton', T:0.03, color:'#bdbdbd'},
+      sponge:{label:'Esponja', cls:'sponge', T:0.12, color:'#f2c84b'},
+      cardboard:{label:'Cartón', cls:'cardboard', T:0.006, color:'#b8793f'}
+    };
+
+    const tabs = [...document.querySelectorAll('.tab')];
+    const distanceScene = document.getElementById('distanceScene');
+    const materialsScene = document.getElementById('materialsScene');
+    const distancePanel = document.getElementById('distancePanel');
+    const materialsPanel = document.getElementById('materialsPanel');
+
+    const rulerDistance = document.getElementById('rulerDistance');
+    const rulerMaterial = document.getElementById('rulerMaterial');
+    const sourceDistance = document.getElementById('sourceDistance');
+    const sourceMaterial = document.getElementById('sourceMaterial');
+    const zeroMarkDistance = document.getElementById('zeroMarkDistance');
+    const zeroMarkMaterial = document.getElementById('zeroMarkMaterial');
+
+    const sensorDistance = document.getElementById('sensorDistance');
+    const sensorMaterial = document.getElementById('sensorMaterial');
+    const luxDistance = document.getElementById('luxDistance');
+    const luxMaterial = document.getElementById('luxMaterial');
+    const distanceGuide = document.getElementById('distanceGuide');
+    const distanceValue = document.getElementById('distanceValue');
+
+    const distanceEquation = document.getElementById('distanceEquation');
+    const materialEquation = document.getElementById('materialEquation');
+    const distanceTable = document.getElementById('distanceTable');
+    const materialsTable = document.getElementById('materialsTable');
+    const chartMode = document.getElementById('distanceChartMode');
+    const materialSelect = document.getElementById('materialSelect');
+    const materialSheet = document.getElementById('materialSheet');
+    const materialName = document.getElementById('materialName');
+
+    const chart = document.getElementById('chart');
+    const ctx = chart.getContext('2d');
+
+    let dragging = false;
+
+    function fmt(n,d=1){return Number(n).toFixed(d).replace('.',',');}
+    function fmt2(n){return Number(n).toFixed(2).replace('.',',');}
+    function fmt4(n){return Number(n).toFixed(4).replace('.',',');}
+    function keyR(r){return Number(r).toFixed(1);}
+
+    function baseE(r){return kLux/(r*r) + Eambient;}
+    function noise(v,p=0.025){return Math.max(0.01, v*(1+(Math.random()*2-1)*p));}
+    function avg(a){return a.reduce((s,x)=>s+x,0)/a.length;}
+
+    function showFallback(imgId,fallbackId){
+      const img = document.getElementById(imgId);
+      const fb = document.getElementById(fallbackId);
+      img.onerror = () => { img.style.display='none'; fb.style.display='block'; };
+    }
+
+    showFallback('sensorImgDistance','fallbackDistance');
+    showFallback('sensorImgMaterial','fallbackMaterial');
+
+    function sceneMetrics(scene,ruler){
+      const sr = scene.getBoundingClientRect();
+      const rr = ruler.getBoundingClientRect();
+      return {sceneLeft:sr.left,sceneWidth:sr.width,rulerLeft:rr.left,rulerWidth:rr.width};
+    }
+
+    function rToPercent(r, max=100){
+      const m = sceneMetrics(state.phase==='distance'?distanceScene:materialsScene, state.phase==='distance'?rulerDistance:rulerMaterial);
+      const xPx = (m.rulerLeft-m.sceneLeft) + (r/max)*m.rulerWidth;
+      return (xPx/m.sceneWidth)*100;
+    }
+
+    function rToScenePx(r, scene, ruler, max=100){
+      const m = sceneMetrics(scene,ruler);
+      return (m.rulerLeft-m.sceneLeft) + (r/max)*m.rulerWidth;
+    }
+
+    function pointerToR(clientX){
+      const m = sceneMetrics(distanceScene,rulerDistance);
+      const p = ((clientX-m.rulerLeft)/m.rulerWidth)*100;
+      const clamped = Math.max(minR,Math.min(maxR,p));
+      return Math.round(clamped/stepR)*stepR;
+    }
+
+    function setLeft(el,percent){el.style.left = percent+'%';}
+
+    function buildRuler(ruler,max,majorEvery,minorEvery){
+      [...ruler.querySelectorAll('.tick,.rlabel')].forEach(x=>x.remove());
+      for(let v=0; v<=max+0.0001; v+=minorEvery){
+        const tick = document.createElement('div');
+        const isMajor = Math.abs(v%majorEvery)<0.0001 || Math.abs((v%majorEvery)-majorEvery)<0.0001;
+        tick.className = 'tick' + (isMajor?' major':'');
+        tick.style.left = (v/max*100)+'%';
+        ruler.appendChild(tick);
+        if(isMajor){
+          const lab = document.createElement('div');
+          lab.className='rlabel';
+          lab.style.left=(v/max*100)+'%';
+          lab.textContent=String(v).replace('.',',');
+          ruler.appendChild(lab);
+        }
+      }
+    }
+
+    function updateDistanceScene(){
+      const r = state.r;
+      const p0 = rToPercent(0);
+      const pr = rToPercent(r);
+      setLeft(sourceDistance,p0);
+      setLeft(zeroMarkDistance,p0);
+      setLeft(sensorDistance,pr);
+      setLeft(luxDistance,pr);
+      setLeft(distanceValue,pr);
+      distanceValue.textContent = fmt(r,1)+' cm';
+      luxDistance.textContent = fmt(baseE(r),0)+' lux';
+
+      const leftPx = rToScenePx(0,distanceScene,rulerDistance,100);
+      const rightPx = rToScenePx(r,distanceScene,rulerDistance,100);
+      distanceGuide.style.left = leftPx+'px';
+      distanceGuide.style.width = Math.max(0,rightPx-leftPx)+'px';
+    }
+
+    function updateMaterialScene(){
+      const mat = materials[state.currentMaterial];
+      const p0 = rToPercent(0,10);
+      const pm = rToPercent(5,10);
+      const ps = rToPercent(10,10);
+
+      setLeft(sourceMaterial,p0);
+      setLeft(zeroMarkMaterial,p0);
+      setLeft(materialSheet,pm);
+      setLeft(materialName,pm);
+      setLeft(sensorMaterial,ps);
+      setLeft(luxMaterial,ps);
+
+      materialSheet.className = 'material-sheet '+mat.cls;
+      materialName.textContent = mat.label;
+
+      const E0 = baseE(10);
+      const Em = E0 * mat.T;
+      luxMaterial.textContent = fmt(Em,0)+' lux';
+    }
+
+    function switchPhase(phase){
+      state.phase = phase;
+      tabs.forEach(t=>t.classList.toggle('active',t.dataset.phase===phase));
+      distanceScene.classList.toggle('hidden',phase!=='distance');
+      materialsScene.classList.toggle('hidden',phase!=='materials');
+      distancePanel.classList.toggle('hidden',phase!=='distance');
+      materialsPanel.classList.toggle('hidden',phase!=='materials');
+      if(phase==='distance'){
+        updateDistanceScene();
+        drawDistanceChart();
+      }else{
+        updateMaterialScene();
+        drawMaterialChart();
+      }
+    }
+
+    tabs.forEach(t=>t.addEventListener('click',()=>switchPhase(t.dataset.phase)));
+
+    function startDistanceDrag(e){
+      if(state.phase !== 'distance') return;
+      dragging = true;
+      distanceScene.setPointerCapture(e.pointerId);
+      state.r = pointerToR(e.clientX);
+      updateDistanceScene();
+      e.preventDefault();
+    }
+
+    function moveDistanceDrag(e){
+      if(!dragging || state.phase !== 'distance') return;
+      state.r = pointerToR(e.clientX);
+      updateDistanceScene();
+      e.preventDefault();
+    }
+
+    function stopDistanceDrag(e){
+      dragging = false;
+      try{ distanceScene.releasePointerCapture(e.pointerId); }catch(err){}
+    }
+
+    // Ahora puedes mover el sensor arrastrando el sensor o tocando cualquier punto de la regla.
+    distanceScene.addEventListener('pointerdown', startDistanceDrag);
+    distanceScene.addEventListener('pointermove', moveDistanceDrag);
+    distanceScene.addEventListener('pointerup', stopDistanceDrag);
+    distanceScene.addEventListener('pointercancel', stopDistanceDrag);
+
+    document.getElementById('saveDistance').addEventListener('click',()=>{
+      const k = keyR(state.r);
+      if(!state.distanceData[k]) state.distanceData[k]=[];
+      if(state.distanceData[k].length>=3) return;
+      state.distanceData[k].push(noise(baseE(state.r)));
+      renderDistanceTable();
+      drawDistanceChart();
+    });
+
+    document.getElementById('clearDistance').addEventListener('click',()=>{
+      state.distanceData={};
+      renderDistanceTable();
+      drawDistanceChart();
+    });
+
+    chartMode.addEventListener('change',drawDistanceChart);
+
+    materialSelect.addEventListener('change',()=>{
+      state.currentMaterial=materialSelect.value;
+      updateMaterialScene();
+    });
+
+    document.getElementById('saveMaterial').addEventListener('click',()=>{
+      const key = state.currentMaterial;
+      const mat = materials[key];
+      const E0 = noise(baseE(10),0.015);
+      const Em = noise(E0*mat.T,0.025);
+      const T = Em/E0;
+      const Aob = Math.log10(E0/Em);
+      state.materialData[key]={key,label:mat.label,E0,Em,T,Aob,color:mat.color};
+      renderMaterialsTable();
+      drawMaterialChart();
+    });
+
+    document.getElementById('clearMaterials').addEventListener('click',()=>{
+      state.materialData={};
+      renderMaterialsTable();
+      drawMaterialChart();
+    });
+
+    function distanceRows(){
+      return Object.keys(state.distanceData).sort((a,b)=>Number(a)-Number(b)).map(k=>{
+        const arr=state.distanceData[k];
+        return {r:Number(k),arr,mean:arr.length?avg(arr):null,x:1/(Number(k)*Number(k))};
+      });
+    }
+
+    function completeDistanceRows(){return distanceRows().filter(r=>r.arr.length>0);}
+
+    function renderDistanceTable(){
+      const rows = distanceRows();
+      distanceTable.innerHTML = rows.length ? rows.map(row=>`
+        <tr>
+          <td>${fmt(row.r,1)}</td>
+          <td>${row.arr[0]!==undefined?fmt(row.arr[0],1):'—'}</td>
+          <td>${row.arr[1]!==undefined?fmt(row.arr[1],1):'—'}</td>
+          <td>${row.arr[2]!==undefined?fmt(row.arr[2],1):'—'}</td>
+          <td>${row.mean!==null?fmt(row.mean,1):'—'}</td>
+          <td>${fmt4(row.x)}</td>
+        </tr>`).join('') : `<tr><td colspan="6">—</td></tr>`;
+    }
+
+    function renderMaterialsTable(){
+      const order=['glass','paper','fabric','cotton','sponge','cardboard'];
+      materialsTable.innerHTML = order.map(key=>{
+        const row = state.materialData[key];
+        if(!row) return `<tr><td>${materials[key].label}</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>`;
+        return `<tr>
+          <td>${row.label}</td>
+          <td>${fmt(row.E0,1)}</td>
+          <td>${fmt(row.Em,1)}</td>
+          <td>${fmt(row.T*100,1)}</td>
+          <td>${fmt2(row.Aob)}</td>
+        </tr>`;
+      }).join('');
+    }
+
+    function linearFit(points){
+      if(points.length<2) return null;
+      const n=points.length;
+      const sx=points.reduce((s,p)=>s+p.x,0);
+      const sy=points.reduce((s,p)=>s+p.y,0);
+      const sxx=points.reduce((s,p)=>s+p.x*p.x,0);
+      const sxy=points.reduce((s,p)=>s+p.x*p.y,0);
+      const den=n*sxx-sx*sx;
+      if(Math.abs(den)<1e-14) return null;
+      const m=(n*sxy-sx*sy)/den;
+      const b=(sy-m*sx)/n;
+      const ybar=sy/n;
+      const ssTot=points.reduce((s,p)=>s+(p.y-ybar)**2,0);
+      const ssRes=points.reduce((s,p)=>s+(p.y-(m*p.x+b))**2,0);
+      const r2=ssTot===0?1:1-ssRes/ssTot;
+      return {m,b,r2};
+    }
+
+    function drawBase(title,xLabel,yLabel,xMin,xMax,yMin,yMax,xTicks,yTicks){
+      const w=chart.width,h=chart.height;
+      const pad={l:88,r:36,t:58,b:96};
+      const pw=w-pad.l-pad.r, ph=h-pad.t-pad.b;
+      const xMap=x=>pad.l+(x-xMin)/(xMax-xMin)*pw;
+      const yMap=y=>h-pad.b-(y-yMin)/(yMax-yMin)*ph;
+
+      ctx.clearRect(0,0,w,h);
+      ctx.fillStyle='#111';
+      ctx.font='25px Times New Roman';
+      ctx.textAlign='center';
+      ctx.fillText(title,w/2,32);
+
+      ctx.strokeStyle='#e5e5e5';
+      ctx.lineWidth=1;
+      xTicks.forEach(t=>{const x=xMap(t.value);ctx.beginPath();ctx.moveTo(x,pad.t);ctx.lineTo(x,h-pad.b);ctx.stroke();});
+      yTicks.forEach(t=>{const y=yMap(t.value);ctx.beginPath();ctx.moveTo(pad.l,y);ctx.lineTo(w-pad.r,y);ctx.stroke();});
+
+      ctx.strokeStyle='#111';ctx.lineWidth=1.5;
+      ctx.beginPath();ctx.moveTo(pad.l,pad.t);ctx.lineTo(pad.l,h-pad.b);ctx.lineTo(w-pad.r,h-pad.b);ctx.stroke();
+
+      ctx.fillStyle='#444';ctx.font='16px Times New Roman';
+      ctx.textAlign='center';xTicks.forEach(t=>ctx.fillText(t.label,xMap(t.value),h-pad.b+34));
+      ctx.textAlign='right';yTicks.forEach(t=>ctx.fillText(t.label,pad.l-10,yMap(t.value)+5));
+
+      ctx.fillStyle='#111';ctx.font='18px Times New Roman';ctx.textAlign='center';
+      ctx.fillText(xLabel,(pad.l+w-pad.r)/2,h-22);
+      ctx.save();ctx.translate(28,(pad.t+h-pad.b)/2);ctx.rotate(-Math.PI/2);ctx.fillText(yLabel,0,0);ctx.restore();
+
+      return {xMap,yMap,pad,pw,ph};
+    }
+
+    function niceTicks(max,steps=5){
+      const arr=[];
+      for(let i=0;i<=steps;i++) arr.push({value:max*i/steps,label:fmt(max*i/steps,0)});
+      return arr;
+    }
+
+    function drawDistanceChart(){
+      const rows = completeDistanceRows();
+      const mode = chartMode.value;
+
+      if(mode==='linear'){
+        const points = rows.map(r=>({x:r.x,y:r.mean}));
+        const xMax = Math.max(0.045, ...points.map(p=>p.x))*1.08;
+        const yMax = Math.max(100, ...points.map(p=>p.y))*1.12;
+        const xTicks=[];
+        for(let i=0;i<=5;i++) xTicks.push({value:xMax*i/5,label:(xMax*i/5).toFixed(4).replace('.',',')});
+        const c = drawBase('E vs 1/r²','1/r² (cm⁻²)','E (lux)',0,xMax,0,yMax,xTicks,niceTicks(yMax));
+
+        points.forEach(p=>{
+          ctx.beginPath();ctx.arc(c.xMap(p.x),c.yMap(p.y),6,0,Math.PI*2);ctx.fillStyle='#111';ctx.fill();
+        });
+
+        const fit = linearFit(points);
+        if(fit){
+          ctx.strokeStyle='#111';ctx.lineWidth=2;
+          ctx.beginPath();
+          const x1=0,x2=xMax;
+          ctx.moveTo(c.xMap(x1),c.yMap(fit.m*x1+fit.b));
+          ctx.lineTo(c.xMap(x2),c.yMap(fit.m*x2+fit.b));
+          ctx.stroke();
+          distanceEquation.innerHTML = `E = ${fmt(fit.m,1)}(1/r²) ${fit.b>=0?'+':'−'} ${fmt(Math.abs(fit.b),2)} &nbsp;&nbsp; R² = ${fmt4(fit.r2)}`;
+        }else{
+          distanceEquation.innerHTML='Registra al menos dos distancias.';
+        }
+        return;
+      }
+
+      const yMax = Math.max(950, ...rows.map(r=>r.mean))*1.1;
+      const xTicks=[]; for(let v=0;v<=100;v+=10) xTicks.push({value:v,label:String(v)});
+      const c = drawBase('E vs r','r (cm)','E (lux)',0,105,0,yMax,xTicks,niceTicks(yMax));
+
+      rows.forEach(p=>{
+        ctx.beginPath();ctx.arc(c.xMap(p.r),c.yMap(p.mean),6,0,Math.PI*2);ctx.fillStyle='#fff';ctx.fill();ctx.strokeStyle='#111';ctx.lineWidth=2;ctx.stroke();
+      });
+
+      const points = rows.map(r=>({x:1/(r.r*r.r),y:r.mean}));
+      const fit = linearFit(points);
+      if(fit){
+        // La curva aparece solo después de registrar datos suficientes.
+        ctx.strokeStyle='#111';ctx.lineWidth=2;
+        ctx.beginPath();
+        for(let r=minR;r<=maxR;r+=0.5){
+          const y=fit.m/(r*r)+fit.b;
+          if(r===minR) ctx.moveTo(c.xMap(r),c.yMap(y)); else ctx.lineTo(c.xMap(r),c.yMap(y));
+        }
+        ctx.stroke();
+        distanceEquation.innerHTML = `E = ${fmt(fit.m,1)}/r² ${fit.b>=0?'+':'−'} ${fmt(Math.abs(fit.b),2)} &nbsp;&nbsp; R² = ${fmt4(fit.r2)}`;
+      }else{
+        distanceEquation.innerHTML='Registra al menos dos distancias.';
+      }
+    }
+
+    function drawMaterialChart(){
+      const order=['glass','paper','fabric','cotton','sponge','cardboard'];
+      const rows=order.map(k=>state.materialData[k]).filter(Boolean);
+      const w=chart.width,h=chart.height;
+      ctx.clearRect(0,0,w,h);
+
+      const labels=order.map(k=>materials[k].label);
+      const xTicks=order.map((k,i)=>({value:i,label:materials[k].label}));
+      const top={l:88,r:38,t:48,b:72,h:255};
+      const bottom={l:88,r:38,t:390,b:68,h:255};
+
+      function yTickList(max,steps,decimals=0){
+        const arr=[];
+        for(let i=0;i<=steps;i++){
+          const v=max*i/steps;
+          arr.push({value:v,label:decimals===0?fmt(v,0):Number(v).toFixed(decimals).replace('.',',')});
+        }
+        return arr;
+      }
+
+      function drawPanel(rect,title,xLabel,yLabel,xMin,xMax,yMin,yMax,yTicks,showXLabels=true){
+        const plotL=rect.l;
+        const plotT=rect.t;
+        const plotB=rect.t+rect.h-rect.b;
+        const plotR=w-rect.r;
+        const plotW=plotR-plotL;
+        const plotH=plotB-plotT;
+        const xMap=x=>plotL+(x-xMin)/(xMax-xMin)*plotW;
+        const yMap=y=>plotB-(y-yMin)/(yMax-yMin)*plotH;
+
+        ctx.fillStyle='#111';
+        ctx.font='23px Times New Roman';
+        ctx.textAlign='center';
+        ctx.fillText(title,(plotL+plotR)/2,rect.t-16);
+
+        ctx.strokeStyle='#e5e5e5';
+        ctx.lineWidth=1;
+        xTicks.forEach(t=>{const x=xMap(t.value);ctx.beginPath();ctx.moveTo(x,plotT);ctx.lineTo(x,plotB);ctx.stroke();});
+        yTicks.forEach(t=>{const y=yMap(t.value);ctx.beginPath();ctx.moveTo(plotL,y);ctx.lineTo(plotR,y);ctx.stroke();});
+
+        ctx.strokeStyle='#111';
+        ctx.lineWidth=1.4;
+        ctx.beginPath();ctx.moveTo(plotL,plotT);ctx.lineTo(plotL,plotB);ctx.lineTo(plotR,plotB);ctx.stroke();
+
+        ctx.fillStyle='#444';
+        ctx.font='15px Times New Roman';
+        ctx.textAlign='right';
+        yTicks.forEach(t=>ctx.fillText(t.label,plotL-10,yMap(t.value)+5));
+
+        if(showXLabels){
+          ctx.save();
+          ctx.textAlign='right';
+          ctx.fillStyle='#444';
+          ctx.font='14px Times New Roman';
+          xTicks.forEach(t=>{
+            const x=xMap(t.value);
+            ctx.save();
+            ctx.translate(x,plotB+25);
+            ctx.rotate(-Math.PI/7);
+            ctx.fillText(t.label,0,0);
+            ctx.restore();
+          });
+          ctx.restore();
+        }
+
+        ctx.fillStyle='#111';
+        ctx.font='17px Times New Roman';
+        ctx.textAlign='center';
+        ctx.fillText(xLabel,(plotL+plotR)/2,rect.t+rect.h-10);
+        ctx.save();
+        ctx.translate(28,(plotT+plotB)/2);
+        ctx.rotate(-Math.PI/2);
+        ctx.fillText(yLabel,0,0);
+        ctx.restore();
+
+        return {xMap,yMap,plotL,plotB,plotT,plotR};
+      }
+
+      const cT=drawPanel(top,'Transmitancia (%) vs material','Material','T (%)',-0.6,5.6,0,100,yTickList(100,5,0),true);
+      const maxA=Math.max(1.1,...rows.map(r=>r.Aob))*1.15;
+      const cA=drawPanel(bottom,'Absorbancia óptica (Aob) vs material','Material','Aob',-0.6,5.6,0,maxA,yTickList(maxA,5,2),true);
+
+      if(!rows.length){
+        materialEquation.innerHTML = 'Resultado: registra un material.';
+        return;
+      }
+
+      const barW=40;
+      order.forEach((key,i)=>{
+        const row=state.materialData[key];
+        if(!row) return;
+
+        let x=cT.xMap(i)-barW/2;
+        let y=cT.yMap(row.T*100);
+        let bh=cT.plotB-y;
+        ctx.fillStyle=row.color;
+        roundRect(ctx,x,y,barW,bh,8);ctx.fill();
+        ctx.strokeStyle='#111';ctx.lineWidth=1;ctx.stroke();
+        ctx.fillStyle='#111';ctx.font='14px Times New Roman';ctx.textAlign='center';
+        ctx.fillText(fmt(row.T*100,1)+'%',x+barW/2,y-7);
+
+        x=cA.xMap(i)-barW/2;
+        y=cA.yMap(row.Aob);
+        bh=cA.plotB-y;
+        ctx.fillStyle=row.color;
+        roundRect(ctx,x,y,barW,bh,8);ctx.fill();
+        ctx.strokeStyle='#111';ctx.lineWidth=1;ctx.stroke();
+        ctx.fillStyle='#111';ctx.font='14px Times New Roman';ctx.textAlign='center';
+        ctx.fillText(fmt2(row.Aob),x+barW/2,y-7);
+      });
+
+      const last=state.materialData[state.currentMaterial];
+      if(last){
+        materialEquation.innerHTML = `${last.label}: T = ${fmt(last.T*100,1)}% &nbsp;&nbsp; A<sub>ob</sub> = ${fmt2(last.Aob)}`;
+      }else{
+        materialEquation.innerHTML = 'Resultado: registra un material.';
+      }
+    }
+
+    function roundRect(ctx,x,y,w,h,r){
+      const rr=Math.min(r,w/2,Math.abs(h)/2);
+      ctx.beginPath();ctx.moveTo(x+rr,y);ctx.arcTo(x+w,y,x+w,y+h,rr);ctx.arcTo(x+w,y+h,x,y+h,rr);ctx.arcTo(x,y+h,x,y,rr);ctx.arcTo(x,y,x+w,y,rr);ctx.closePath();
+    }
+
+    buildRuler(rulerDistance,100,10,5);
+    buildRuler(rulerMaterial,10,5,1);
+    renderDistanceTable();
+    renderMaterialsTable();
+    updateDistanceScene();
+    updateMaterialScene();
+    drawDistanceChart();
+
+    window.addEventListener('resize',()=>{
+      updateDistanceScene();
+      updateMaterialScene();
+      if(state.phase==='distance') drawDistanceChart(); else drawMaterialChart();
+    });
+  </script>
+</body>
+</html>

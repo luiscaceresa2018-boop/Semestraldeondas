@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Simulador | Superposición de ondas con osciloscopio</title>
+<style>
+:root{
+  --ink:#111114;
+  --muted:#6f6f78;
+  --line:#d8d8df;
+  --accent:#7c3cff;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  min-height:100vh;
+  background:#fff;
+  color:var(--ink);
+  font-family:"Times New Roman", Times, serif;
+}
+button,input{font-family:"Times New Roman", Times, serif}
+.page{
+  width:min(1220px,100%);
+  margin:0 auto;
+  min-height:100vh;
+  padding:46px 24px 34px;
+  display:grid;
+  gap:24px;
+}
+h1{
+  font-size:clamp(36px,5vw,64px);
+  font-weight:400;
+  line-height:.92;
+  letter-spacing:-1.3px;
+}
+.scene{
+  position:relative;
+  height:500px;
+  background:#fff;
+  overflow:hidden;
+}
+.table-line{
+  position:absolute;
+  left:5%;
+  right:5%;
+  bottom:82px;
+  height:2px;
+  background:#c9c9d2;
+}
+.tube-wrap{
+  position:absolute;
+  left:8%;
+  right:33%;
+  top:74px;
+  height:230px;
+}
+.tube{
+  position:absolute;
+  inset:0;
+  border:2px solid #111;
+  border-radius:120px;
+  background:#fff;
+  overflow:hidden;
+}
+.inner{
+  position:absolute;
+  left:35px;
+  right:35px;
+  top:38px;
+  bottom:38px;
+  border:1px solid #c9c9d2;
+  border-radius:90px;
+  background:#fff;
+}
+.speaker{
+  position:absolute;
+  top:50%;
+  width:70px;
+  height:70px;
+  border:2px solid #111;
+  border-radius:50%;
+  background:#fff;
+  transform:translateY(-50%);
+  z-index:5;
+}
+.speaker::before{
+  content:"";
+  position:absolute;
+  inset:16px;
+  border-radius:50%;
+  background:#111;
+}
+.speaker.one{left:32px}
+.speaker.two{right:32px}
+.speaker.inactive{
+  opacity:.28;
+  filter:grayscale(1);
+}
+.speaker.active-source{
+  opacity:1;
+  filter:none;
+  box-shadow:0 0 0 8px rgba(124,60,255,.08);
+}
+.speaker-label.inactive{
+  opacity:.35;
+}
+.speaker-label.active-source{
+  opacity:1;
+}
+.speaker-label{
+  position:absolute;
+  top:calc(50% + 52px);
+  transform:translateX(-50%);
+  color:#555;
+  font-size:15px;
+  white-space:nowrap;
+}
+.label-one{left:67px}
+.label-two{right:20px}
+.hidden{
+  display:none !important;
+}
+
+.mic{
+  position:absolute;
+  left:50%;
+  bottom:58px;
+  width:58px;
+  height:92px;
+  transform:translateX(-50%);
+  z-index:8;
+  pointer-events:none;
+}
+
+.mic img{
+  width:58px;
+  height:92px;
+  object-fit:contain;
+  display:block;
+  margin:0 auto;
+}
+.wave-layer{
+  position:absolute;
+  left:105px;
+  right:105px;
+  top:58px;
+  bottom:58px;
+  z-index:3;
+}
+#waveInTube{
+  width:100%;
+  height:100%;
+  display:block;
+}
+.oscilloscope{
+  position:absolute;
+  right:6%;
+  top:58px;
+  width:300px;
+  height:230px;
+  border:2px solid #111;
+  border-radius:10px;
+  background:#fff;
+}
+.screen{
+  position:absolute;
+  left:18px;
+  top:18px;
+  width:200px;
+  height:140px;
+  border:2px solid #111;
+  background:#fff;
+}
+#scopeCanvas{
+  width:100%;
+  height:100%;
+  display:block;
+}
+.knobs{
+  position:absolute;
+  right:22px;
+  top:34px;
+  display:grid;
+  gap:16px;
+}
+.knobs span{
+  width:34px;
+  height:34px;
+  border:2px solid #111;
+  border-radius:50%;
+}
+.scope-label{
+  position:absolute;
+  left:0;
+  right:0;
+  bottom:-28px;
+  text-align:center;
+  color:#555;
+  font-size:16px;
+}
+.readout{
+  position:absolute;
+  left:18px;
+  right:18px;
+  bottom:18px;
+  display:flex;
+  gap:18px;
+  flex-wrap:wrap;
+  color:#555;
+  font-size:16px;
+}
+.readout strong{
+  color:#111;
+  font-weight:400;
+}
+.controls{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:22px;
+}
+.panel h2{
+  font-size:29px;
+  font-weight:400;
+  margin-bottom:12px;
+}
+.row{
+  display:flex;
+  gap:10px;
+  align-items:center;
+  flex-wrap:wrap;
+}
+.btn{
+  border:none;
+  background:#111;
+  color:#fff;
+  padding:13px 18px;
+  cursor:pointer;
+  font-size:17px;
+  transition:.2s ease;
+}
+.btn.secondary{
+  background:#fff;
+  color:#111;
+  border-bottom:1px solid #111;
+}
+.btn.active{
+  background:var(--accent);
+  color:#fff;
+}
+.btn:hover{
+  transform:translateY(-2px);
+  background:var(--accent);
+  color:#fff;
+}
+.btn.secondary:hover{
+  background:#fff;
+  color:var(--accent);
+}
+.freq-box{
+  margin-top:12px;
+  display:flex;
+  align-items:center;
+  gap:10px;
+  color:#555;
+  font-size:18px;
+}
+.freq-box input{
+  width:110px;
+  border:none;
+  border-bottom:1px solid #111;
+  outline:none;
+  font-size:22px;
+  padding:8px 2px;
+  background:#fff;
+}
+.note{
+  margin-top:10px;
+  color:#666;
+  font-size:17px;
+  line-height:1.35;
+}
+@media(max-width:900px){
+  .scene{height:650px}
+  .tube-wrap{left:5%;right:5%;top:58px}
+  .oscilloscope{left:50%;right:auto;top:340px;transform:translateX(-50%)}
+  .controls{grid-template-columns:1fr}
+}
+</style>
+</head>
+
+<body>
+<main class="page">
+  <h1>Superposición de ondas con osciloscopio</h1>
+
+  <section class="scene">
+    <div class="tube-wrap">
+      <div class="tube">
+        <div class="inner"></div>
+
+        <div class="speaker one active-source" id="speakerOne"></div>
+        <div class="speaker-label label-one active-source" id="speakerOneLabel">Fuente 1</div>
+
+        <div class="speaker two inactive" id="speakerTwo"></div>
+        <div class="speaker-label label-two inactive" id="speakerTwoLabel">Fuente 2</div>
+
+        <div class="wave-layer">
+          <canvas id="waveInTube" width="740" height="170"></canvas>
+        </div>
+
+        <div class="mic">
+          <img
+            id="micImg"
+            src="../assets/sensores/microfono.png?v=3"
+            alt="Micrófono"
+          >
+        </div>
+      </div>
+    </div>
+
+    <div class="oscilloscope">
+      <div class="screen">
+        <canvas id="scopeCanvas" width="400" height="280"></canvas>
+      </div>
+
+      <div class="knobs">
+        <span></span>
+        <span></span>
+        <span></span>
+      </div>
+
+      <div class="readout">
+        <span>Modo: <strong id="modeText">Onda 1</strong></span>
+        <span>f₁: <strong id="f1Text">3 Hz</strong></span>
+        <span>f₂: <strong id="f2Text">5 Hz</strong></span>
+        <span>Base: <strong>20 ms</strong></span>
+      </div>
+
+      <div class="scope-label">Osciloscopio</div>
+    </div>
+
+    <div class="table-line"></div>
+  </section>
+
+  <section class="controls">
+    <div class="panel">
+      <h2>Visualización</h2>
+      <div class="row">
+        <button class="btn active" id="wave1Btn">Onda 1</button>
+        <button class="btn secondary" id="wave2Btn">Onda 2</button>
+        <button class="btn secondary" id="sumBtn">Superposición</button>
+      </div>
+      <p class="note">
+        El micrófono permanece fijo. Puedes ajustar cada frecuencia hasta 1000 Hz. La pantalla del osciloscopio está estabilizada para que la señal no se vea irrealmente rápida.
+      </p>
+    </div>
+
+    <div class="panel">
+      <h2>Frecuencias</h2>
+      <div class="freq-box">
+        <span>Onda 1:</span>
+        <input id="f1Input" type="number" min="0.1" max="1000" step="1" value="440">
+        <span>Hz</span>
+      </div>
+      <div class="freq-box">
+        <span>Onda 2:</span>
+        <input id="f2Input" type="number" min="0.1" max="1000" step="1" value="600">
+        <span>Hz</span>
+      </div>
+    </div>
+  </section>
+</main>
+
+<script>
+const tubeCanvas = document.getElementById('waveInTube');
+const tubeCtx = tubeCanvas.getContext('2d');
+
+const scopeCanvas = document.getElementById('scopeCanvas');
+const scopeCtx = scopeCanvas.getContext('2d');
+
+const wave1Btn = document.getElementById('wave1Btn');
+const wave2Btn = document.getElementById('wave2Btn');
+const sumBtn = document.getElementById('sumBtn');
+
+const f1Input = document.getElementById('f1Input');
+const f2Input = document.getElementById('f2Input');
+
+const modeText = document.getElementById('modeText');
+const f1Text = document.getElementById('f1Text');
+const f2Text = document.getElementById('f2Text');
+
+const speakerOne = document.getElementById('speakerOne');
+const speakerTwo = document.getElementById('speakerTwo');
+const speakerOneLabel = document.getElementById('speakerOneLabel');
+const speakerTwoLabel = document.getElementById('speakerTwoLabel');
+
+let mode = 'wave1';
+let time = 0;
+let last = performance.now();
+
+function getF1(){
+  return Math.max(0.1, Number(f1Input.value) || 3);
+}
+
+function getF2(){
+  return Math.max(0.1, Number(f2Input.value) || 5);
+}
+
+function setMode(next){
+  mode = next;
+
+  wave1Btn.className = next === 'wave1' ? 'btn active' : 'btn secondary';
+  wave2Btn.className = next === 'wave2' ? 'btn active' : 'btn secondary';
+  sumBtn.className = next === 'sum' ? 'btn active' : 'btn secondary';
+
+  modeText.textContent = next === 'wave1' ? 'Onda 1' : next === 'wave2' ? 'Onda 2' : 'Superposición';
+
+  updateSpeakerSelection();
+}
+
+function updateSpeakerSelection(){
+  const oneActive = mode === 'wave1' || mode === 'sum';
+  const twoActive = mode === 'wave2' || mode === 'sum';
+
+  speakerOne.classList.toggle('active-source', oneActive);
+  speakerOne.classList.toggle('inactive', !oneActive);
+  speakerOneLabel.classList.toggle('active-source', oneActive);
+  speakerOneLabel.classList.toggle('inactive', !oneActive);
+
+  speakerTwo.classList.toggle('active-source', twoActive);
+  speakerTwo.classList.toggle('inactive', !twoActive);
+  speakerTwoLabel.classList.toggle('active-source', twoActive);
+  speakerTwoLabel.classList.toggle('inactive', !twoActive);
+}
+
+wave1Btn.addEventListener('click', () => setMode('wave1'));
+wave2Btn.addEventListener('click', () => setMode('wave2'));
+sumBtn.addEventListener('click', () => setMode('sum'));
+
+function waveSpace(cycles, direction, x, visualTime){
+  // Visualización didáctica: el sonido real no se puede seguir con la vista.
+  // La frecuencia cambia la cantidad de ciclos visibles, pero el desplazamiento se mantiene lento.
+  return Math.sin(2*Math.PI*(cycles*x - direction*0.18*visualTime));
+}
+
+function waveTime(f, tau, visualTime){
+  // Osciloscopio estabilizado: la frecuencia cambia los ciclos dentro de la ventana de tiempo,
+  // pero la traza no corre a velocidad irreal.
+  return Math.sin(2*Math.PI*(f*tau + 0.08*visualTime));
+}
+
+function visualCycles(f){
+  // Comprime la representación espacial para que 1000 Hz no se vea como una mancha.
+  return Math.max(1, Math.min(10, f/100));
+}
+
+function y1Space(x){
+  return waveSpace(visualCycles(getF1()), 1, x, time);
+}
+
+function y2Space(x){
+  return waveSpace(visualCycles(getF2()), -1, x, time);
+}
+
+function y1Scope(tau){
+  return waveTime(getF1(), tau, time);
+}
+
+function y2Scope(tau){
+  return waveTime(getF2(), tau, time);
+}
+
+function selectedSpace(x){
+  if(mode === 'wave1') return y1Space(x);
+  if(mode === 'wave2') return y2Space(x);
+  return 0.5*(y1Space(x) + y2Space(x));
+}
+
+function selectedScope(tau){
+  if(mode === 'wave1') return y1Scope(tau);
+  if(mode === 'wave2') return y2Scope(tau);
+  return 0.5*(y1Scope(tau) + y2Scope(tau));
+}
+
+function drawTube(){
+  const w = tubeCanvas.width;
+  const h = tubeCanvas.height;
+
+  tubeCtx.clearRect(0,0,w,h);
+
+  tubeCtx.strokeStyle = '#d9d9e2';
+  tubeCtx.lineWidth = 1;
+  tubeCtx.beginPath();
+  tubeCtx.moveTo(0,h/2);
+  tubeCtx.lineTo(w,h/2);
+  tubeCtx.stroke();
+
+  if(mode === 'wave1' || mode === 'sum'){
+    tubeCtx.strokeStyle = '#111';
+    tubeCtx.lineWidth = mode === 'sum' ? 1.8 : 2.8;
+    tubeCtx.setLineDash(mode === 'sum' ? [8,7] : []);
+    drawTubeCurve(x => y1Space(x)*0.75);
+    tubeCtx.setLineDash([]);
+  }
+
+  if(mode === 'wave2' || mode === 'sum'){
+    tubeCtx.strokeStyle = '#7c3cff';
+    tubeCtx.lineWidth = mode === 'sum' ? 1.8 : 2.8;
+    tubeCtx.setLineDash(mode === 'sum' ? [8,7] : []);
+    drawTubeCurve(x => y2Space(x)*0.75);
+    tubeCtx.setLineDash([]);
+  }
+
+  if(mode === 'sum'){
+    tubeCtx.strokeStyle = '#111';
+    tubeCtx.lineWidth = 3;
+    drawTubeCurve(x => selectedSpace(x));
+  }
+}
+
+function drawTubeCurve(fn){
+  const w = tubeCanvas.width;
+  const h = tubeCanvas.height;
+
+  tubeCtx.beginPath();
+  for(let i=0;i<=700;i++){
+    const x = i/700;
+    const px = x*w;
+    const py = h/2 - fn(x)*55;
+    if(i===0) tubeCtx.moveTo(px,py);
+    else tubeCtx.lineTo(px,py);
+  }
+  tubeCtx.stroke();
+}
+
+function drawScope(){
+  const w = scopeCanvas.width;
+  const h = scopeCanvas.height;
+  const pad = 20;
+
+  scopeCtx.clearRect(0,0,w,h);
+
+  scopeCtx.strokeStyle = '#e4e4ea';
+  scopeCtx.lineWidth = 1;
+
+  for(let i=0;i<=8;i++){
+    const x = pad + i*(w-2*pad)/8;
+    scopeCtx.beginPath();
+    scopeCtx.moveTo(x,pad);
+    scopeCtx.lineTo(x,h-pad);
+    scopeCtx.stroke();
+  }
+
+  for(let i=0;i<=6;i++){
+    const y = pad + i*(h-2*pad)/6;
+    scopeCtx.beginPath();
+    scopeCtx.moveTo(pad,y);
+    scopeCtx.lineTo(w-pad,y);
+    scopeCtx.stroke();
+  }
+
+  scopeCtx.strokeStyle = '#111';
+  scopeCtx.lineWidth = 1.4;
+  scopeCtx.beginPath();
+  scopeCtx.rect(pad,pad,w-2*pad,h-2*pad);
+  scopeCtx.stroke();
+
+  // Ejes del osciloscopio
+  const xAxisY = h/2;
+  const yAxisX = pad + 34;
+  scopeCtx.strokeStyle = '#666';
+  scopeCtx.lineWidth = 1.2;
+  scopeCtx.beginPath();
+  scopeCtx.moveTo(pad, xAxisY);
+  scopeCtx.lineTo(w-pad, xAxisY);
+  scopeCtx.stroke();
+  scopeCtx.beginPath();
+  scopeCtx.moveTo(yAxisX, pad);
+  scopeCtx.lineTo(yAxisX, h-pad);
+  scopeCtx.stroke();
+
+  // Etiquetas de ejes
+  scopeCtx.fillStyle = '#111';
+  scopeCtx.font = '14px Times New Roman';
+  scopeCtx.textAlign = 'center';
+
+  scopeCtx.strokeStyle = '#111';
+  scopeCtx.lineWidth = 2.8;
+  scopeCtx.beginPath();
+
+  // Ventana temporal de 20 ms para que frecuencias altas, hasta 1000 Hz, se vean en el osciloscopio.
+  const timeWindow = 0.020;
+  for(let i=0;i<=900;i++){
+    const tau = (i/900) * timeWindow;
+    const value = selectedScope(tau);
+    const px = pad + (i/900)*(w-2*pad);
+    const py = h/2 - value*58;
+
+    if(i===0) scopeCtx.moveTo(px,py);
+    else scopeCtx.lineTo(px,py);
+  }
+
+  scopeCtx.stroke();
+}
+
+function animate(now){
+  const dt = Math.min(0.05, (now - last)/1000);
+  last = now;
+
+  time += dt * 0.65;
+
+  f1Text.textContent = getF1().toFixed(1).replace('.', ',') + ' Hz';
+  f2Text.textContent = getF2().toFixed(1).replace('.', ',') + ' Hz';
+
+  drawTube();
+  drawScope();
+
+  requestAnimationFrame(animate);
+}
+
+setMode('wave1');
+requestAnimationFrame(animate);
+</script>
+</body>
+</html>

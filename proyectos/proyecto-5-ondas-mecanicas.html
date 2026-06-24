@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Simulador | Resonancia y modos de vibración</title>
+<style>
+:root{
+  --ink:#111114;
+  --muted:#666670;
+  --line:#d8d8df;
+  --accent:#7c3cff;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  min-height:100vh;
+  background:#fff;
+  color:var(--ink);
+  font-family:"Times New Roman", Times, serif;
+}
+input{font-family:"Times New Roman", Times, serif}
+.page{
+  width:min(1120px,100%);
+  margin:0 auto;
+  padding:34px 24px 34px;
+  display:grid;
+  gap:22px;
+}
+h1{
+  font-size:clamp(36px,5vw,62px);
+  font-weight:400;
+  line-height:.95;
+  letter-spacing:-1.2px;
+}
+.scene{
+  position:relative;
+  height:390px;
+  border-bottom:1px solid var(--line);
+  overflow:hidden;
+  background:#fff;
+}
+.support{
+  position:absolute;
+  top:84px;
+  width:20px;
+  height:225px;
+  background:#111;
+  z-index:2;
+}
+.support.left{left:72px}
+.support.right{left:828px}
+.support::after{
+  content:"";
+  position:absolute;
+  left:-26px;
+  right:-26px;
+  bottom:-14px;
+  height:14px;
+  background:#111;
+}
+.wave-wrap{
+  position:absolute;
+  left:92px;
+  top:92px;
+  width:736px;
+  height:200px;
+}
+#waveCanvas{
+  width:100%;
+  height:100%;
+  display:block;
+}
+.ruler{
+  position:absolute;
+  left:92px;
+  top:320px;
+  width:736px;
+  height:44px;
+}
+.ruler-line{
+  position:absolute;
+  left:0;
+  right:0;
+  top:12px;
+  height:1px;
+  background:#9696a2;
+}
+.ruler::before,.ruler::after{
+  content:"";
+  position:absolute;
+  top:3px;
+  width:1px;
+  height:19px;
+  background:#555;
+}
+.ruler::before{left:0}
+.ruler::after{right:0}
+.length-text{
+  position:absolute;
+  left:50%;
+  top:24px;
+  transform:translateX(-50%);
+  padding:0 7px;
+  background:#fff;
+  color:#333;
+  font-size:18px;
+}
+.state{
+  position:absolute;
+  right:22px;
+  top:18px;
+  width:210px;
+  border-bottom:1px solid var(--line);
+  padding-bottom:6px;
+}
+.state small{
+  display:block;
+  color:#666;
+  font-size:15px;
+  margin-bottom:4px;
+}
+.state strong{
+  font-size:26px;
+  font-weight:400;
+}
+.controls{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:28px;
+  align-items:start;
+}
+.panel h2{
+  font-size:28px;
+  font-weight:400;
+  margin-bottom:14px;
+}
+.control{
+  display:grid;
+  grid-template-columns:140px 1fr 90px;
+  gap:12px;
+  align-items:center;
+  margin-bottom:15px;
+  color:#555;
+  font-size:18px;
+}
+.control input[type="range"]{
+  width:100%;
+  accent-color:#111;
+}
+.control input[type="number"]{
+  width:90px;
+  border:none;
+  border-bottom:1px solid #111;
+  background:#fff;
+  outline:none;
+  font-size:20px;
+  padding:6px 2px;
+}
+.results{
+  display:grid;
+  grid-template-columns:repeat(2,1fr);
+  gap:14px;
+}
+.card{
+  border-bottom:1px solid var(--line);
+  padding:10px 0;
+}
+.card small{
+  display:block;
+  color:#666;
+  font-size:14px;
+  margin-bottom:4px;
+}
+.card strong{
+  font-size:24px;
+  font-weight:400;
+}
+@media(max-width:920px){
+  .scene{height:470px}
+  .state{
+    position:relative;
+    right:auto;
+    top:auto;
+    width:100%;
+    margin-top:14px;
+  }
+  .controls{grid-template-columns:1fr}
+  .control{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+<main class="page">
+  <header>
+    <h1>Resonancia y modos de vibración</h1>
+  </header>
+
+  <section class="scene">
+    <div class="support left"></div>
+    <div class="support right" id="rightSupport"></div>
+
+    <div class="wave-wrap" id="waveWrap">
+      <canvas id="waveCanvas" width="736" height="200"></canvas>
+    </div>
+
+    <div class="ruler" id="ruler">
+      <div class="ruler-line"></div>
+      <div class="length-text" id="lengthText">L = 1,00 m</div>
+    </div>
+
+    <div class="state">
+      <small>Estado</small>
+      <strong id="stateRead">—</strong>
+    </div>
+  </section>
+
+  <section class="controls">
+    <div class="panel">
+      <h2>Datos</h2>
+
+      <div class="control">
+        <span>Frecuencia</span>
+        <input id="freqRange" type="range" min="0.5" max="30" step="0.1" value="6">
+        <input id="freqInput" type="number" min="0.5" max="30" step="0.1" value="6">
+      </div>
+
+      <div class="control">
+        <span>Longitud</span>
+        <input id="lengthRange" type="range" min="0.30" max="1.50" step="0.01" value="1.00">
+        <input id="lengthInput" type="number" min="0.30" max="1.50" step="0.01" value="1.00">
+      </div>
+
+      <div class="control">
+        <span>Amplitud</span>
+        <input id="ampRange" type="range" min="1" max="10" step="0.1" value="5">
+        <input id="ampInput" type="number" min="1" max="10" step="0.1" value="5">
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Resultados</h2>
+
+      <div class="results">
+        <div class="card"><small>RPM</small><strong id="rpmRead">—</strong></div>
+        <div class="card"><small>Período</small><strong id="periodRead">—</strong></div>
+        <div class="card"><small>λ del modo</small><strong id="lambdaRead">—</strong></div>
+        <div class="card"><small>Armónicos visibles</small><strong id="harmonicsRead">—</strong></div>
+        <div class="card"><small>Nodos visibles</small><strong id="nodesRead">—</strong></div>
+        <div class="card"><small>Antinodos visibles</small><strong id="antinodesRead">—</strong></div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<script>
+const canvas = document.getElementById('waveCanvas');
+const ctx = canvas.getContext('2d');
+
+const waveWrap = document.getElementById('waveWrap');
+const ruler = document.getElementById('ruler');
+const rightSupport = document.getElementById('rightSupport');
+const lengthText = document.getElementById('lengthText');
+
+const stateRead = document.getElementById('stateRead');
+const rpmRead = document.getElementById('rpmRead');
+const periodRead = document.getElementById('periodRead');
+const lambdaRead = document.getElementById('lambdaRead');
+const harmonicsRead = document.getElementById('harmonicsRead');
+const nodesRead = document.getElementById('nodesRead');
+const antinodesRead = document.getElementById('antinodesRead');
+
+const freqRange = document.getElementById('freqRange');
+const freqInput = document.getElementById('freqInput');
+const lengthRange = document.getElementById('lengthRange');
+const lengthInput = document.getElementById('lengthInput');
+const ampRange = document.getElementById('ampRange');
+const ampInput = document.getElementById('ampInput');
+
+const VREF = 6.0; // con L = 1,00 m y f = 6 Hz -> n = 2, o sea 3 nodos visibles
+let t = 0;
+let last = performance.now();
+
+function fmt(n, d=2){
+  return Number(n).toFixed(d).replace('.', ',');
+}
+function num(el){ return Number(el.value); }
+
+function f(){ return Math.max(0.5, num(freqInput) || 6); }
+function L(){ return Math.max(0.30, num(lengthInput) || 1); }
+function A(){ return Math.max(1, num(ampInput) || 5); }
+
+function sync(range, input){ input.value = range.value; }
+function syncBack(input, range, d){
+  let x = Number(input.value);
+  x = Math.max(Number(input.min), Math.min(Number(input.max), x));
+  input.value = x.toFixed(d);
+  range.value = x;
+}
+
+freqRange.addEventListener('input', () => sync(freqRange, freqInput));
+freqInput.addEventListener('input', () => syncBack(freqInput, freqRange, 1));
+lengthRange.addEventListener('input', () => sync(lengthRange, lengthInput));
+lengthInput.addEventListener('input', () => syncBack(lengthInput, lengthRange, 2));
+ampRange.addEventListener('input', () => sync(ampRange, ampInput));
+ampInput.addEventListener('input', () => syncBack(ampInput, ampRange, 1));
+
+function systemData(){
+  const freq = f();
+  const len = L();
+  const nFloat = 2 * len * freq / VREF;
+  const n = Math.max(1, Math.round(nFloat));
+  const fn = n * VREF / (2 * len);
+  const error = Math.abs(freq - fn) / fn;
+  const resonant = error < 0.075;
+  const close = error < 0.15;
+  return {freq, len, nFloat, n, fn, error, resonant, close};
+}
+
+function updateGeometry(){
+  const len = L();
+  const p = (len - 0.30) / (1.50 - 0.30);
+  const width = 260 + p * 520;
+
+  waveWrap.style.width = width + 'px';
+  ruler.style.width = width + 'px';
+
+  // soporte derecho con un pequeño margen extra para que se vea el extremo del hilo
+  rightSupport.style.left = (72 + 20 + width + 8) + 'px';
+
+  lengthText.textContent = 'L = ' + fmt(len, 2) + ' m';
+}
+
+function visibleDomain(w){
+  // solo cuenta el hilo visible entre apoyos
+  return {x0: 8, x1: w - 8, width: w - 16};
+}
+
+function visibleCounts(d){
+  if(!d.resonant){
+    return {nodes:'—', antinodes:'—', harmonics:'—', lambda:'—'};
+  }
+
+  const w = canvas.width;
+  const dom = visibleDomain(w);
+  let nodes = 0;
+  let antinodes = 0;
+
+  for(let k = 0; k <= d.n; k++){
+    const x = dom.x0 + (k / d.n) * dom.width;
+    if(x >= dom.x0 && x <= dom.x1) nodes++;
+  }
+
+  for(let k = 0; k < d.n; k++){
+    const x = dom.x0 + ((k + 0.5) / d.n) * dom.width;
+    if(x > dom.x0 && x < dom.x1) antinodes++;
+  }
+
+  return {
+    nodes,
+    antinodes,
+    harmonics: d.n,
+    lambda: fmt(2 * d.len / d.n, 2) + ' m'
+  };
+}
+
+function updateResults(){
+  const d = systemData();
+  stateRead.textContent = d.resonant ? 'Resonancia' : d.close ? 'Cerca' : 'Sin resonancia';
+  rpmRead.textContent = fmt(60 * d.freq, 0);
+  periodRead.textContent = fmt(1 / d.freq, 3) + ' s';
+
+  const counts = visibleCounts(d);
+  lambdaRead.textContent = counts.lambda;
+  harmonicsRead.textContent = counts.harmonics;
+  nodesRead.textContent = counts.nodes;
+  antinodesRead.textContent = counts.antinodes;
+}
+
+function drawEquilibrium(w, h, mid){
+  const dom = visibleDomain(w);
+  ctx.strokeStyle = '#aeb0b7';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(dom.x0, mid);
+  ctx.lineTo(dom.x1, mid);
+  ctx.stroke();
+}
+
+function drawResonance(w, h, mid, d, amp){
+  const dom = visibleDomain(w);
+  const phase = Math.sin(2 * Math.PI * t * d.freq * 0.18);
+
+  ctx.strokeStyle = '#111';
+  ctx.lineWidth = 3.2;
+  ctx.beginPath();
+  for(let i = 0; i <= 900; i++){
+    const u = i / 900;
+    const y = mid - amp * Math.sin(d.n * Math.PI * u) * phase;
+    const px = dom.x0 + u * dom.width;
+    if(i === 0) ctx.moveTo(px, y);
+    else ctx.lineTo(px, y);
+  }
+  ctx.stroke();
+
+  // nodos visibles sobre el hilo visible
+  ctx.fillStyle = '#111';
+  ctx.strokeStyle = '#fff';
+  ctx.lineWidth = 1.8;
+  for(let k = 0; k <= d.n; k++){
+    const x = dom.x0 + (k / d.n) * dom.width;
+    if(x < dom.x0 || x > dom.x1) continue;
+    ctx.beginPath();
+    ctx.arc(x, mid, 5.2, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+  }
+
+  // antinodos visibles
+  ctx.strokeStyle = '#7c3cff';
+  ctx.lineWidth = 2.6;
+  for(let k = 0; k < d.n; k++){
+    const x = dom.x0 + ((k + 0.5) / d.n) * dom.width;
+    if(x <= dom.x0 || x >= dom.x1) continue;
+    ctx.beginPath();
+    ctx.arc(x, mid, 8.5, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+}
+
+function drawClose(w, h, mid, d, amp){
+  const dom = visibleDomain(w);
+  const phase = Math.sin(2 * Math.PI * t * d.freq * 0.20);
+
+  ctx.strokeStyle = '#111';
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  for(let i = 0; i <= 900; i++){
+    const u = i / 900;
+    const standing = Math.sin(d.n * Math.PI * u) * phase;
+    const travel = Math.sin(2 * Math.PI * (d.nFloat * u - t * d.freq * 0.12));
+    const y = mid - amp * (0.55 * standing + 0.20 * travel);
+    const px = dom.x0 + u * dom.width;
+    if(i === 0) ctx.moveTo(px, y);
+    else ctx.lineTo(px, y);
+  }
+  ctx.stroke();
+}
+
+function drawNotResonant(w, h, mid, d, amp){
+  const dom = visibleDomain(w);
+  const phase = t * d.freq * 0.18;
+
+  ctx.strokeStyle = '#111';
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  for(let i = 0; i <= 900; i++){
+    const u = i / 900;
+    const y = mid - amp * 0.35 * Math.sin(2 * Math.PI * (d.nFloat * u - phase));
+    const px = dom.x0 + u * dom.width;
+    if(i === 0) ctx.moveTo(px, y);
+    else ctx.lineTo(px, y);
+  }
+  ctx.stroke();
+}
+
+function draw(){
+  updateGeometry();
+  updateResults();
+
+  const w = canvas.width;
+  const h = canvas.height;
+  const mid = h / 2;
+  const d = systemData();
+  const amp = A() * 7;
+
+  ctx.clearRect(0, 0, w, h);
+  drawEquilibrium(w, h, mid);
+
+  if(d.resonant) drawResonance(w, h, mid, d, amp);
+  else if(d.close) drawClose(w, h, mid, d, amp);
+  else drawNotResonant(w, h, mid, d, amp);
+}
+
+function animate(now){
+  const dt = Math.min(0.05, (now - last) / 1000);
+  last = now;
+  t += dt;
+  draw();
+  requestAnimationFrame(animate);
+}
+
+requestAnimationFrame(animate);
+</script>
+</body>
+</html>

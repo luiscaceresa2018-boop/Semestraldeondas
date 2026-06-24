@@ -1,0 +1,1339 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Proyectos y laboratorio de ondas</title>
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&family=Quicksand:wght@300;400;500;600&family=Pixelify+Sans:wght@400;500&display=swap');
+
+    :root {
+      --bg: #ffffff;
+      --text: #0b0b0b;
+      --muted: #6c6c6c;
+      --soft: #f2f2f2;
+      --soft-2: #e8e8e8;
+      --line: #dddddd;
+      --black: #050505;
+      --blue: #2676ff;
+      --radius-xl: 34px;
+      --radius-lg: 26px;
+      --radius-md: 14px;
+      --shadow: 0 26px 80px rgba(0, 0, 0, 0.08);
+      --font-pixel: "Times New Roman", Times, serif;
+      --font-clean: "Times New Roman", Times, serif;
+      --font-rounded: "Times New Roman", Times, serif;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      font-family: var(--font-clean);
+      font-weight: 400;
+      font-variation-settings: normal;
+      -webkit-font-smoothing: antialiased;
+      text-rendering: geometricPrecision;
+      background: var(--bg);
+      color: var(--text);
+      overflow-x: hidden;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    img {
+      display: block;
+      max-width: 100%;
+    }
+
+    .intro-title,
+    .hero h1,
+    .section-title {
+      font-family: var(--font-pixel);
+      font-weight: 400;
+      letter-spacing: -0.035em;
+    }
+
+    .navbar a,
+    .btn,
+    .work-link,
+    .skill-tags span {
+      font-family: var(--font-pixel);
+      letter-spacing: -0.01em;
+    }
+
+    .hero-name,
+    .about-name,
+    .resume-label,
+    .resume-text,
+    .work-card h3 {
+      font-family: var(--font-rounded);
+    }
+
+    .hero-copy,
+    .section-intro,
+    .about-brief,
+    .resume-text,
+    .work-card p,
+    .photo-placeholder,
+    .figure-placeholder,
+    .image-missing {
+      font-family: var(--font-clean);
+    }
+
+    /* =========================
+       ANIMACIONES AL HACER SCROLL
+    ========================== */
+    .reveal {
+      opacity: 0;
+      transform: translateY(34px);
+      filter: blur(8px);
+      transition:
+        opacity 0.8s ease,
+        transform 0.8s ease,
+        filter 0.8s ease;
+      will-change: opacity, transform, filter;
+    }
+
+    .reveal.in-view {
+      opacity: 1;
+      transform: translateY(0);
+      filter: blur(0);
+    }
+
+    .work-card.reveal {
+      transition-delay: var(--delay, 0ms);
+    }
+
+    /* =========================
+       ENTRADA ANIMADA
+    ========================== */
+    .intro-screen {
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      display: grid;
+      place-items: center;
+      background: #ffffff;
+      animation: introOut 0.9s ease 3.4s forwards;
+    }
+
+    .intro-screen.hide {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+
+    .intro-content {
+      width: min(900px, 92vw);
+      text-align: center;
+    }
+
+    .intro-title {
+      font-size: clamp(3.3rem, 9vw, 8.4rem);
+      font-weight: 400;
+      letter-spacing: -0.045em;
+      line-height: 0.9;
+      color: #111;
+      animation: welcomePulse 1.6s ease-in-out infinite alternate;
+    }
+
+    .intro-subtitle {
+      margin-top: 16px;
+      font-size: clamp(0.9rem, 2vw, 1.18rem);
+      color: #777;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    .intro-waves {
+      width: min(760px, 88vw);
+      height: 150px;
+      margin: 32px auto 0;
+      overflow: visible;
+    }
+
+    .intro-waves path {
+      fill: none;
+      stroke-linecap: round;
+      stroke-width: 8;
+      stroke-dasharray: 1200;
+      stroke-dashoffset: 1200;
+      animation: drawWave 2.2s ease-in-out forwards, floatWave 1.9s ease-in-out infinite alternate;
+    }
+
+    .intro-waves path:nth-child(1) { animation-delay: 0.05s, 2.15s; }
+    .intro-waves path:nth-child(2) { animation-delay: 0.25s, 2.25s; }
+    .intro-waves path:nth-child(3) { animation-delay: 0.45s, 2.35s; }
+
+    @keyframes drawWave {
+      to { stroke-dashoffset: 0; }
+    }
+
+    @keyframes floatWave {
+      from { transform: translateY(0); }
+      to { transform: translateY(-10px); }
+    }
+
+    @keyframes welcomePulse {
+      from { opacity: 0.56; transform: scale(0.985); }
+      to { opacity: 1; transform: scale(1); }
+    }
+
+    @keyframes introOut {
+      to {
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+      }
+    }
+
+    /* =========================
+       FONDO SUAVE
+    ========================== */
+    .page-bg {
+      position: fixed;
+      inset: 0;
+      z-index: -2;
+      background:
+        radial-gradient(circle at 14% 16%, rgba(0, 0, 0, 0.04), transparent 28%),
+        radial-gradient(circle at 92% 12%, rgba(0, 0, 0, 0.03), transparent 26%),
+        linear-gradient(180deg, #fff 0%, #fafafa 100%);
+    }
+
+    .soft-wave-bg {
+      position: fixed;
+      right: -160px;
+      top: 130px;
+      width: 570px;
+      height: 570px;
+      z-index: -1;
+      opacity: 0.052;
+      animation: rotateSlow 22s linear infinite;
+    }
+
+    @keyframes rotateSlow {
+      to { transform: rotate(360deg); }
+    }
+
+    /* =========================
+       NAVBAR
+    ========================== */
+    .navbar {
+      position: fixed;
+      left: 50%;
+      top: 22px;
+      transform: translateX(-50%);
+      z-index: 1000;
+      width: min(820px, calc(100% - 26px));
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 7px;
+      padding: 8px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.86);
+      backdrop-filter: blur(18px);
+      box-shadow: 0 10px 35px rgba(0, 0, 0, 0.08);
+    }
+
+    .navbar a {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 16px;
+      border-radius: 999px;
+      color: #555;
+      font-size: 0.95rem;
+      transition: 0.25s ease;
+      white-space: nowrap;
+    }
+
+    .navbar svg,
+    .btn-icon {
+      width: 17px;
+      height: 17px;
+      stroke: currentColor;
+      stroke-width: 2;
+      fill: none;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      flex: 0 0 auto;
+    }
+
+    .navbar a:hover,
+    .navbar a.active {
+      background: #111;
+      color: #fff;
+    }
+
+    /* =========================
+       SECCIONES
+    ========================== */
+    section {
+      width: min(1160px, calc(100% - 36px));
+      margin: 0 auto;
+      padding: 108px 0;
+    }
+
+    .section-title {
+      font-size: clamp(2.6rem, 6vw, 5.8rem);
+      letter-spacing: -0.045em;
+      line-height: 0.94;
+      font-weight: 400;
+      margin-bottom: 18px;
+    }
+
+    .section-intro {
+      max-width: 560px;
+      margin: 0 auto 42px;
+      color: var(--muted);
+      font-size: 1.08rem;
+      line-height: 1.65;
+      text-align: center;
+    }
+
+    .center-head {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+
+    /* =========================
+       INICIO
+    ========================== */
+    .hero {
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: 1.05fr 0.95fr;
+      align-items: center;
+      gap: 54px;
+      padding-top: 130px;
+    }
+
+    .hero h1 {
+      max-width: 760px;
+      font-size: clamp(4.2rem, 10vw, 9.4rem);
+      letter-spacing: -0.045em;
+      line-height: 0.9;
+      font-weight: 400;
+      margin-bottom: 22px;
+    }
+
+    .hero-name {
+      display: inline-block;
+      color: #111;
+      font-family: var(--font-rounded);
+      font-weight: 400;
+      letter-spacing: -0.045em;
+      animation: nameBlink 1.1s ease-in-out infinite alternate;
+    }
+
+    @keyframes nameBlink {
+      from { color: #9a9a9a; opacity: 0.68; }
+      to { color: #080808; opacity: 1; }
+    }
+
+    .type-box {
+      display: inline-flex;
+      align-items: center;
+      min-height: 48px;
+      margin-bottom: 20px;
+      padding: 10px 16px;
+      border: 0;
+      outline: 0;
+      border-radius: 6px;
+      background: #eeeeee;
+      box-shadow: none;
+      color: #222;
+      font-family: var(--font-clean);
+      font-size: clamp(1rem, 2vw, 1.18rem);
+      font-weight: 400;
+    }
+
+    .cursor {
+      display: inline-block;
+      width: 3px;
+      height: 1.08em;
+      margin-left: 5px;
+      border-radius: 999px;
+      background: var(--blue);
+      animation: cursorBlink 0.75s steps(1) infinite;
+      transform: translateY(2px);
+    }
+
+    @keyframes cursorBlink {
+      50% { opacity: 0; }
+    }
+
+    .hero-copy {
+      max-width: 510px;
+      color: var(--muted);
+      font-size: 1.08rem;
+      line-height: 1.65;
+      margin-bottom: 28px;
+    }
+
+    .hero-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 9px;
+      min-height: 48px;
+      padding: 13px 22px;
+      border-radius: 999px;
+      background: #111;
+      color: #fff;
+      font-size: 1rem;
+      transition: 0.25s ease;
+      border: 1px solid #111;
+      cursor: pointer;
+    }
+
+    .btn:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 14px 30px rgba(0, 0, 0, 0.13);
+    }
+
+    .btn.secondary {
+      background: transparent;
+      color: #111;
+    }
+
+    .photo-card {
+      position: relative;
+      min-height: 520px;
+      border-radius: var(--radius-xl);
+      background: #f0f0f0;
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+
+    .photo-card img {
+      width: 100%;
+      height: 100%;
+      min-height: 520px;
+      object-fit: cover;
+    }
+
+    .photo-placeholder,
+    .figure-placeholder,
+    .image-missing {
+      display: grid;
+      place-items: center;
+      padding: 28px;
+      text-align: center;
+      color: #747474;
+      background:
+        linear-gradient(135deg, rgba(255,255,255,0.78), rgba(238,238,238,0.92)),
+        repeating-linear-gradient(45deg, #eeeeee 0 12px, #f7f7f7 12px 24px);
+    }
+
+    .photo-placeholder {
+      position: absolute;
+      inset: 0;
+    }
+
+    .photo-placeholder strong,
+    .figure-placeholder strong,
+    .image-missing strong {
+      display: block;
+      color: #111;
+      font-size: 1.22rem;
+      margin-bottom: 8px;
+    }
+
+    .photo-card.has-image .photo-placeholder,
+    .about-figure.has-image .figure-placeholder {
+      display: none;
+    }
+
+    /* =========================
+       ACERCA DE NOSOTROS
+    ========================== */
+    .about-grid {
+      display: grid;
+      grid-template-columns: 0.9fr 1.1fr;
+      gap: 58px;
+      align-items: center;
+    }
+
+    .about-figure {
+      position: relative;
+      min-height: 560px;
+      border-radius: var(--radius-xl);
+      background: #f0f0f0;
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+
+    .about-figure img {
+      width: 100%;
+      height: 100%;
+      min-height: 560px;
+      object-fit: cover;
+    }
+
+    .figure-placeholder {
+      position: absolute;
+      inset: 0;
+    }
+
+    .pulse-word {
+      animation: nosotrosPulse 1.15s ease-in-out infinite alternate;
+    }
+
+    @keyframes nosotrosPulse {
+      from { color: #a2a2a2; opacity: 0.64; }
+      to { color: #060606; opacity: 1; }
+    }
+
+    .about-name {
+      min-height: 44px;
+      margin: -4px 0 18px;
+      font-size: clamp(1.35rem, 3.2vw, 2.55rem);
+      font-weight: 400;
+      letter-spacing: -0.018em;
+      line-height: 1.05;
+      color: #111;
+      animation: nameBlink 1.1s ease-in-out infinite alternate;
+    }
+
+    .about-brief {
+      color: var(--muted);
+      font-size: 1.1rem;
+      line-height: 1.68;
+      margin-bottom: 28px;
+      max-width: 610px;
+    }
+
+    .resume-lines {
+      border-top: 1px solid var(--line);
+      border-bottom: 1px solid var(--line);
+      margin-top: 26px;
+    }
+
+    .resume-line {
+      display: grid;
+      grid-template-columns: 150px 1fr;
+      gap: 24px;
+      padding: 18px 0;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .resume-line:last-child {
+      border-bottom: 0;
+    }
+
+    .resume-label {
+      font-family: var(--font-rounded);
+      font-weight: 500;
+      color: #111;
+      letter-spacing: -0.01em;
+    }
+
+    .resume-text {
+      font-family: var(--font-rounded);
+      font-weight: 400;
+      color: #686868;
+      line-height: 1.55;
+      letter-spacing: 0;
+    }
+
+    .skill-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 9px;
+    }
+
+    .skill-tags span {
+      display: inline-flex;
+      align-items: center;
+      min-height: 34px;
+      padding: 8px 13px;
+      border-radius: 999px;
+      background: #111;
+      color: #fff;
+      font-family: var(--font-pixel);
+      font-size: 0.92rem;
+    }
+
+    /* =========================
+       TARJETAS: PROYECTOS Y LABS
+    ========================== */
+    .work-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 20px;
+    }
+
+    .work-card {
+      min-height: 390px;
+      display: flex;
+      flex-direction: column;
+      border-radius: var(--radius-lg);
+      background: #f3f3f3;
+      overflow: hidden;
+      transition: 0.25s ease;
+    }
+
+    .work-card:hover {
+      transform: translateY(-7px);
+      box-shadow: 0 18px 50px rgba(0, 0, 0, 0.09);
+    }
+
+    .work-media {
+      position: relative;
+      height: 178px;
+      width: 100%;
+      background: #e9e9e9;
+      overflow: hidden;
+    }
+
+    .work-media img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .image-missing {
+      position: absolute;
+      inset: 0;
+      font-size: 0.95rem;
+    }
+
+    .work-body {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      padding: 22px;
+    }
+
+    .work-card h3 {
+      font-family: var(--font-rounded);
+      font-size: 1.16rem;
+      font-weight: 500;
+      line-height: 1.24;
+      letter-spacing: -0.01em;
+      margin-bottom: 10px;
+    }
+
+    .work-card p {
+      flex: 1;
+      font-family: var(--font-clean);
+      color: #666;
+      line-height: 1.55;
+      font-size: 0.95rem;
+      font-weight: 400;
+      margin-bottom: 22px;
+    }
+
+    .work-link {
+      width: max-content;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 11px 15px;
+      border-radius: 999px;
+      background: #111;
+      color: #fff;
+      font-weight: 400;
+      font-size: 0.94rem;
+      transition: 0.22s ease;
+    }
+
+    .work-link:hover {
+      transform: translateY(-2px);
+    }
+
+    .work-link svg {
+      width: 16px;
+      height: 16px;
+      stroke: currentColor;
+      stroke-width: 2;
+      fill: none;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+
+
+    .navbar a,
+    .btn,
+    .work-link,
+    .skill-tags span {
+      font-weight: 400;
+    }
+
+    .hero-copy,
+    .section-intro,
+    .about-brief,
+    .resume-text,
+    .work-card p {
+      font-weight: 400;
+    }
+
+
+    /* =========================
+       CARRUSEL INFINITO: PROYECTOS Y LABORATORIO
+    ========================== */
+    .project-marquee {
+      width: 100%;
+      overflow: hidden;
+      padding: 8px 0 22px;
+      -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 7%, #000 93%, transparent 100%);
+      mask-image: linear-gradient(90deg, transparent 0%, #000 7%, #000 93%, transparent 100%);
+    }
+
+    .marquee-track {
+      display: flex;
+      width: max-content;
+      animation: marqueeMove 42s linear infinite;
+      will-change: transform;
+    }
+
+    .project-marquee:hover .marquee-track,
+    .project-marquee:focus-within .marquee-track {
+      animation-play-state: paused;
+    }
+
+    .marquee-group {
+      display: flex;
+      gap: 20px;
+      padding-right: 20px;
+      min-width: max-content;
+    }
+
+    .marquee-card {
+      width: 305px;
+      flex: 0 0 305px;
+      color: inherit;
+      cursor: pointer;
+    }
+
+    .marquee-card:focus-visible {
+      outline: 3px solid var(--blue);
+      outline-offset: 5px;
+    }
+
+    .project-badge {
+      display: inline-flex;
+      align-items: center;
+      width: max-content;
+      min-height: 29px;
+      margin-bottom: 10px;
+      padding: 6px 11px;
+      border-radius: 999px;
+      background: #111;
+      color: #fff;
+      font-size: 0.82rem;
+      letter-spacing: -0.01em;
+      font-family: var(--font-pixel);
+    }
+
+    @keyframes marqueeMove {
+      from { transform: translateX(0); }
+      to { transform: translateX(-50%); }
+    }
+
+    @media (max-width: 720px) {
+      .marquee-card {
+        width: 280px;
+        flex-basis: 280px;
+      }
+
+      .project-marquee {
+        -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 4%, #000 96%, transparent 100%);
+        mask-image: linear-gradient(90deg, transparent 0%, #000 4%, #000 96%, transparent 100%);
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .marquee-track {
+        animation: none;
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+
+      .marquee-group[aria-hidden="true"] {
+        display: none;
+      }
+    }
+
+    /* =========================
+       PIE SIMPLE
+    ========================== */
+    footer { display: none; }
+
+    /* =========================
+       RESPONSIVE
+    ========================== */
+    @media (max-width: 980px) {
+      .hero,
+      .about-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .hero {
+        gap: 36px;
+      }
+
+      .photo-card,
+      .photo-card img,
+      .about-figure,
+      .about-figure img {
+        min-height: 430px;
+      }
+
+      .work-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 720px) {
+      .navbar {
+        justify-content: flex-start;
+        overflow-x: auto;
+        scrollbar-width: none;
+      }
+
+      .navbar::-webkit-scrollbar {
+        display: none;
+      }
+
+      section {
+        padding: 86px 0;
+      }
+
+      .hero {
+        padding-top: 110px;
+      }
+
+      .hero h1 {
+        font-size: clamp(3.7rem, 16vw, 6.2rem);
+      }
+
+      .photo-card,
+      .photo-card img,
+      .about-figure,
+      .about-figure img {
+        min-height: 350px;
+      }
+
+      .resume-line {
+        grid-template-columns: 1fr;
+        gap: 7px;
+      }
+
+      .work-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="intro-screen" id="introScreen">
+    <div class="intro-content">
+      <h1 class="intro-title">Bienvenidos</h1>
+      <p class="intro-subtitle">Proyectos y laboratorio de ondas</p>
+
+      <svg class="intro-waves" viewBox="0 0 900 180" aria-hidden="true">
+        <defs>
+          <linearGradient id="waveGradient1" x1="0" x2="1" y1="0" y2="0">
+            <stop offset="0%" stop-color="#0b0b0b" />
+            <stop offset="50%" stop-color="#777777" />
+            <stop offset="100%" stop-color="#d9d9d9" />
+          </linearGradient>
+          <linearGradient id="waveGradient2" x1="0" x2="1" y1="0" y2="0">
+            <stop offset="0%" stop-color="#d9d9d9" />
+            <stop offset="50%" stop-color="#555555" />
+            <stop offset="100%" stop-color="#111111" />
+          </linearGradient>
+        </defs>
+        <path d="M30 70 C120 20, 210 120, 300 70 S480 20, 570 70 S750 120, 870 70" stroke="url(#waveGradient1)" />
+        <path d="M30 110 C120 60, 210 160, 300 110 S480 60, 570 110 S750 160, 870 110" stroke="url(#waveGradient2)" opacity="0.72" />
+        <path d="M80 145 C160 105, 240 175, 320 145 S480 105, 560 145 S720 175, 820 145" stroke="#9d9d9d" opacity="0.45" />
+      </svg>
+    </div>
+  </div>
+
+  <div class="page-bg"></div>
+  <svg class="soft-wave-bg" viewBox="0 0 300 300" aria-hidden="true">
+    <path d="M35 150 C75 70, 125 230, 165 150 S255 70, 290 150" fill="none" stroke="#000" stroke-width="24" stroke-linecap="round" />
+    <path d="M35 205 C80 125, 125 280, 175 205 S255 125, 290 205" fill="none" stroke="#000" stroke-width="14" stroke-linecap="round" />
+  </svg>
+
+  <nav class="navbar" aria-label="Navegación principal">
+    <a href="#inicio" class="active">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11.5 12 4l9 7.5"/><path d="M5 10.5V20h5v-5h4v5h5v-9.5"/></svg>
+      Inicio
+    </a>
+    <a href="#acerca">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>
+      Acerca de nosotros
+    </a>
+    <a href="#proyectos">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7h7l2 2h9v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/><path d="M3 7V5a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v2"/></svg>
+      Proyectos y laboratorio
+    </a>
+  </nav>
+
+  <main>
+    <!-- ======================= INICIO ======================= -->
+    <section class="hero" id="inicio">
+      <div class="hero-content">
+        <h1>Hola, soy <span class="hero-name" id="heroName">Luis</span></h1>
+
+        <div class="type-box" aria-live="polite">
+          <span id="typedText">Estudiante de Docencia en Física</span><span class="cursor"></span>
+        </div>
+
+      </div>
+
+      <div class="photo-card" id="photoCard">
+        <img src="assets/foto-grupal.jpg" alt="Foto grupal del equipo" id="teamPhoto" />
+        <div class="photo-placeholder">
+          <div>
+            <strong>Foto grupal</strong>
+            Imagen del equipo
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================= ACERCA ======================= -->
+    <section id="acerca">
+      <div class="about-grid">
+        <div class="about-figure" id="aboutFigure">
+          <img src="assets/figura-equipo.png" alt="Figura representativa del equipo" id="figureImage" />
+          <div class="figure-placeholder">
+            <div>
+              <strong>Figura del equipo</strong>
+              Imagen representativa del grupo
+            </div>
+          </div>
+        </div>
+
+        <div class="about-content">
+          <h2 class="section-title">Acerca de <span class="pulse-word">nosotros</span></h2>
+          <p class="about-brief">
+            Somos un grupo de estudiantes que desarrolló simuladores como apoyo visual, con el propósito de mejorar la enseñanza y comprensión de las ondas, utilizándolos como herramienta introductoria a distintos temas.
+          </p>
+
+          <div class="resume-lines">
+            <div class="resume-line">
+              <div class="resume-label">Profesora supervisora</div>
+              <div class="resume-text">
+                Mayubell Itzel Alvarado Valdes
+              </div>
+            </div>
+
+            <div class="resume-line">
+              <div class="resume-label">Institución</div>
+              <div class="resume-text">
+                Universidad de Panamá
+              </div>
+            </div>
+
+            <div class="resume-line">
+              <div class="resume-label">Procedencia</div>
+              <div class="resume-text">
+                Panamá, Coclé, Darién, Panamá Oeste y Panamá Norte.
+              </div>
+            </div>
+
+            <div class="resume-line">
+              <div class="resume-label">Perfil del grupo</div>
+              <div class="resume-text">
+                Estudiantes jóvenes, con una edad promedio cercana a los 20 años.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================= PROYECTOS Y LABORATORIO ======================= -->
+    <section id="proyectos">
+      <div class="center-head">
+        <h2 class="section-title">Proyectos y laboratorio</h2>
+        <p class="section-intro">Selecciona un simulador para observar, comparar y analizar diferentes fenómenos ondulatorios.</p>
+      </div>
+
+      <div class="project-marquee" aria-label="Carrusel de proyectos y laboratorio">
+        <div class="marquee-track">
+          <div class="marquee-group">
+        <a class="work-card marquee-card" href="proyecto/proyecto-1-luz-visible.html" aria-label="Abrir Proyecto 1: Luz visible y ondas electromagnéticas">
+          <div class="work-media">
+            <img src="assets/proyectos/proyecto-1-luz-visible.png" alt="Proyecto sobre luz visible y ondas electromagnéticas" onerror="this.style.display='none'; this.nextElementSibling.style.display='grid';" />
+            <div class="image-missing" style="display:none;"><div><strong>Imagen</strong>Simulador de ondas</div></div>
+          </div>
+          <div class="work-body">
+            <span class="project-badge">Proyecto 1</span>
+            <h3>Luz visible y ondas electromagnéticas</h3>
+            <p>Simula cómo la intensidad de la luz visible puede representar información transmitida por ondas electromagnéticas.</p>
+            <span class="work-link">
+              Abrir simulador
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></svg>
+            </span>
+          </div>
+        </a>
+
+        <a class="work-card marquee-card" href="proyectos/proyecto-2-velocidad-sonido.html" aria-label="Abrir Proyecto 2: Velocidad del sonido en el aire">
+          <div class="work-media">
+            <img src="assets/proyectos/proyecto-2-velocidad-sonido.png" alt="Proyecto sobre velocidad del sonido en el aire" onerror="this.style.display='none'; this.nextElementSibling.style.display='grid';" />
+            <div class="image-missing" style="display:none;"><div><strong>Imagen</strong>Simulador de ondas</div></div>
+          </div>
+          <div class="work-body">
+            <span class="project-badge">Proyecto 2</span>
+            <h3>Velocidad del sonido en el aire</h3>
+            <p>Permite explorar cómo se calcula la velocidad del sonido a partir del tiempo de propagación en el aire.</p>
+            <span class="work-link">
+              Abrir simulador
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></svg>
+            </span>
+          </div>
+        </a>
+
+        <a class="work-card marquee-card" href="proyectos/proyecto-3-interferencia-sonora.html" aria-label="Abrir Proyecto 3: Interferencia de ondas sonoras">
+          <div class="work-media">
+            <img src="assets/proyectos/proyecto-3-interferencia-sonora.png" alt="Proyecto sobre interferencia de ondas sonoras" onerror="this.style.display='none'; this.nextElementSibling.style.display='grid';" />
+            <div class="image-missing" style="display:none;"><div><strong>Imagen</strong>Simulador de ondas</div></div>
+          </div>
+          <div class="work-body">
+            <span class="project-badge">Proyecto 3</span>
+            <h3>Interferencia de ondas sonoras</h3>
+            <p>Muestra cómo se combinan dos ondas sonoras y cómo aparecen interferencias constructivas y destructivas.</p>
+            <span class="work-link">
+              Abrir simulador
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></svg>
+            </span>
+          </div>
+        </a>
+
+        <a class="work-card marquee-card" href="proyectos/proyecto-4-atenuacion-luz.html" aria-label="Abrir Proyecto 4: Atenuación de luz por distancia y materiales">
+          <div class="work-media">
+            <img src="assets/proyectos/proyecto-4-atenuacion-luz.png" alt="Proyecto sobre atenuación de la luz" onerror="this.style.display='none'; this.nextElementSibling.style.display='grid';" />
+            <div class="image-missing" style="display:none;"><div><strong>Imagen</strong>Simulador de ondas</div></div>
+          </div>
+          <div class="work-body">
+            <span class="project-badge">Proyecto 4</span>
+            <h3>Atenuación de luz por distancia y materiales</h3>
+            <p>Permite comparar cómo cambia la intensidad de la luz al modificar la distancia o colocar materiales en su trayectoria.</p>
+            <span class="work-link">
+              Abrir simulador
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></svg>
+            </span>
+          </div>
+        </a>
+
+        <a class="work-card marquee-card" href="proyectos/proyecto-5-ondas-mecanicas.html" aria-label="Abrir Proyecto 5: Ondas mecánicas experimentales">
+          <div class="work-media">
+            <img src="assets/proyectos/proyecto-5-ondas-mecanicas.png" alt="Proyecto sobre ondas mecánicas experimentales" onerror="this.style.display='none'; this.nextElementSibling.style.display='grid';" />
+            <div class="image-missing" style="display:none;"><div><strong>Imagen</strong>Simulador de ondas</div></div>
+          </div>
+          <div class="work-body">
+            <span class="project-badge">Proyecto 5</span>
+            <h3>Ondas mecánicas experimentales</h3>
+            <p>Simula ondas mecánicas para observar su frecuencia, amplitud y forma de propagación.</p>
+            <span class="work-link">
+              Abrir simulador
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></svg>
+            </span>
+          </div>
+        </a>
+
+        <a class="work-card marquee-card" href="proyectos/laboratorio-ondas-cuerda.html" aria-label="Abrir Laboratorio: Propagación de ondas en cuerda">
+          <div class="work-media">
+            <img src="assets/proyectos/laboratorio-ondas-cuerda.png" alt="Laboratorio de propagación de ondas en una cuerda" onerror="this.style.display='none'; this.nextElementSibling.style.display='grid';" />
+            <div class="image-missing" style="display:none;"><div><strong>Imagen</strong>Simulador de ondas</div></div>
+          </div>
+          <div class="work-body">
+            <span class="project-badge">Laboratorio</span>
+            <h3>Propagación de ondas en cuerda</h3>
+            <p>Simula la propagación de ondas en una cuerda y relaciona la velocidad con la tensión y la densidad lineal.</p>
+            <span class="work-link">
+              Abrir simulador
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></svg>
+            </span>
+          </div>
+        </a>
+          </div>
+
+          <div class="marquee-group" aria-hidden="true">
+        <a class="work-card marquee-card" href="proyectos/proyecto-1-luz-visible.html" aria-label="Abrir Proyecto 1: Luz visible y ondas electromagnéticas">
+          <div class="work-media">
+            <img src="assets/proyectos/proyecto-1-luz-visible.png" alt="Proyecto sobre luz visible y ondas electromagnéticas" onerror="this.style.display='none'; this.nextElementSibling.style.display='grid';" />
+            <div class="image-missing" style="display:none;"><div><strong>Imagen</strong>Simulador de ondas</div></div>
+          </div>
+          <div class="work-body">
+            <span class="project-badge">Proyecto 1</span>
+            <h3>Luz visible y ondas electromagnéticas</h3>
+            <p>Simula cómo la intensidad de la luz visible puede representar información transmitida por ondas electromagnéticas.</p>
+            <span class="work-link">
+              Abrir simulador
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></svg>
+            </span>
+          </div>
+        </a>
+
+        <a class="work-card marquee-card" href="proyectos/proyecto-2-velocidad-sonido.html" aria-label="Abrir Proyecto 2: Velocidad del sonido en el aire">
+          <div class="work-media">
+            <img src="assets/proyectos/proyecto-2-velocidad-sonido.png" alt="Proyecto sobre velocidad del sonido en el aire" onerror="this.style.display='none'; this.nextElementSibling.style.display='grid';" />
+            <div class="image-missing" style="display:none;"><div><strong>Imagen</strong>Simulador de ondas</div></div>
+          </div>
+          <div class="work-body">
+            <span class="project-badge">Proyecto 2</span>
+            <h3>Velocidad del sonido en el aire</h3>
+            <p>Permite explorar cómo se calcula la velocidad del sonido a partir del tiempo de propagación en el aire.</p>
+            <span class="work-link">
+              Abrir simulador
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></svg>
+            </span>
+          </div>
+        </a>
+
+        <a class="work-card marquee-card" href="proyectos/proyecto-3-interferencia-sonora.html" aria-label="Abrir Proyecto 3: Interferencia de ondas sonoras">
+          <div class="work-media">
+            <img src="assets/proyectos/proyecto-3-interferencia-sonora.png" alt="Proyecto sobre interferencia de ondas sonoras" onerror="this.style.display='none'; this.nextElementSibling.style.display='grid';" />
+            <div class="image-missing" style="display:none;"><div><strong>Imagen</strong>Simulador de ondas</div></div>
+          </div>
+          <div class="work-body">
+            <span class="project-badge">Proyecto 3</span>
+            <h3>Interferencia de ondas sonoras</h3>
+            <p>Muestra cómo se combinan dos ondas sonoras y cómo aparecen interferencias constructivas y destructivas.</p>
+            <span class="work-link">
+              Abrir simulador
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></svg>
+            </span>
+          </div>
+        </a>
+
+        <a class="work-card marquee-card" href="proyectos/proyecto-4-atenuacion-luz.html" aria-label="Abrir Proyecto 4: Atenuación de luz por distancia y materiales">
+          <div class="work-media">
+            <img src="assets/proyectos/proyecto-4-atenuacion-luz.png" alt="Proyecto sobre atenuación de la luz" onerror="this.style.display='none'; this.nextElementSibling.style.display='grid';" />
+            <div class="image-missing" style="display:none;"><div><strong>Imagen</strong>Simulador de ondas</div></div>
+          </div>
+          <div class="work-body">
+            <span class="project-badge">Proyecto 4</span>
+            <h3>Atenuación de luz por distancia y materiales</h3>
+            <p>Permite comparar cómo cambia la intensidad de la luz al modificar la distancia o colocar materiales en su trayectoria.</p>
+            <span class="work-link">
+              Abrir simulador
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></svg>
+            </span>
+          </div>
+        </a>
+
+        <a class="work-card marquee-card" href="proyectos/proyecto-5-ondas-mecanicas.html" aria-label="Abrir Proyecto 5: Ondas mecánicas experimentales">
+          <div class="work-media">
+            <img src="assets/proyectos/proyecto-5-ondas-mecanicas.png" alt="Proyecto sobre ondas mecánicas experimentales" onerror="this.style.display='none'; this.nextElementSibling.style.display='grid';" />
+            <div class="image-missing" style="display:none;"><div><strong>Imagen</strong>Simulador de ondas</div></div>
+          </div>
+          <div class="work-body">
+            <span class="project-badge">Proyecto 5</span>
+            <h3>Ondas mecánicas experimentales</h3>
+            <p>Simula ondas mecánicas para observar su frecuencia, amplitud y forma de propagación.</p>
+            <span class="work-link">
+              Abrir simulador
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></svg>
+            </span>
+          </div>
+        </a>
+
+        <a class="work-card marquee-card" href="proyectos/laboratorio-ondas-cuerda.html" aria-label="Abrir Laboratorio: Propagación de ondas en cuerda">
+          <div class="work-media">
+            <img src="assets/proyectos/laboratorio-ondas-cuerda.png" alt="Laboratorio de propagación de ondas en una cuerda" onerror="this.style.display='none'; this.nextElementSibling.style.display='grid';" />
+            <div class="image-missing" style="display:none;"><div><strong>Imagen</strong>Simulador de ondas</div></div>
+          </div>
+          <div class="work-body">
+            <span class="project-badge">Laboratorio</span>
+            <h3>Propagación de ondas en cuerda</h3>
+            <p>Simula la propagación de ondas en una cuerda y relaciona la velocidad con la tensión y la densidad lineal.</p>
+            <span class="work-link">
+              Abrir simulador
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></svg>
+            </span>
+          </div>
+        </a>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const intro = document.getElementById('introScreen');
+    window.addEventListener('load', () => {
+      setTimeout(() => {
+        intro.classList.add('hide');
+      }, 3400);
+    });
+
+    intro.addEventListener('click', () => {
+      intro.classList.add('hide');
+    });
+
+    const teamPhoto = document.getElementById('teamPhoto');
+    const photoCard = document.getElementById('photoCard');
+    const figureImage = document.getElementById('figureImage');
+    const aboutFigure = document.getElementById('aboutFigure');
+
+    teamPhoto.addEventListener('load', () => {
+      photoCard.classList.add('has-image');
+    });
+
+    teamPhoto.addEventListener('error', () => {
+      teamPhoto.style.display = 'none';
+      photoCard.classList.remove('has-image');
+    });
+
+    figureImage.addEventListener('load', () => {
+      aboutFigure.classList.add('has-image');
+    });
+
+    figureImage.addEventListener('error', () => {
+      figureImage.style.display = 'none';
+      aboutFigure.classList.remove('has-image');
+    });
+
+    const firstNames = [
+      'Anthony',
+      'Arelis',
+      'Fernando',
+      'Gabriel',
+      'Héctor',
+      'Johan',
+      'Licci',
+      'Loo Ana',
+      'Luis',
+      'Melany',
+      'Rubén',
+      'Yaremis'
+    ];
+
+    const fullNames = [
+      'Anthony Cáceres',
+      'Arelis Zorrilla',
+      'Fernando Carrillo',
+      'Gabriel Núñez',
+      'Héctor Pino',
+      'Johan Santamaría',
+      'Licci Torres',
+      'Loo Ana Mae',
+      'Luis Cáceres',
+      'Melany Vásquez',
+      'Rubén Concepción',
+      'Yaremis Morales'
+    ];
+
+    const heroName = document.getElementById('heroName');
+    let nameIndex = firstNames.indexOf('Luis');
+
+    setInterval(() => {
+      nameIndex = (nameIndex + 1) % firstNames.length;
+      heroName.textContent = firstNames[nameIndex];
+    }, 1450);
+
+    const phrases = [
+      'Estudiante de Docencia en Física',
+      'en la Facultad de Ciencias Naturales, Exactas y Tecnología',
+      'de la Universidad de Panamá'
+    ];
+
+    const typedText = document.getElementById('typedText');
+    let phraseIndex = 0;
+    let charIndex = 0;
+    let deleting = false;
+
+    function typeLoop() {
+      const current = phrases[phraseIndex];
+
+      if (!deleting) {
+        typedText.textContent = current.slice(0, charIndex + 1);
+        charIndex++;
+
+        if (charIndex === current.length) {
+          deleting = true;
+          setTimeout(typeLoop, 1100);
+          return;
+        }
+      } else {
+        typedText.textContent = current.slice(0, charIndex - 1);
+        charIndex--;
+
+        if (charIndex === 0) {
+          deleting = false;
+          phraseIndex = (phraseIndex + 1) % phrases.length;
+        }
+      }
+
+      setTimeout(typeLoop, deleting ? 42 : 72);
+    }
+
+    typeLoop();
+
+    const navLinks = document.querySelectorAll('.navbar a');
+    const sections = document.querySelectorAll('main section');
+
+    function setActiveLink() {
+      let current = 'inicio';
+      sections.forEach(section => {
+        const sectionTop = section.offsetTop - 170;
+        if (window.scrollY >= sectionTop) {
+          current = section.getAttribute('id');
+        }
+      });
+
+      navLinks.forEach(link => {
+        link.classList.toggle('active', link.getAttribute('href') === '#' + current);
+      });
+    }
+
+
+    const revealItems = document.querySelectorAll(
+      '.hero-content, .photo-card, .about-figure, .about-content, .resume-line, .skill-tags span, .center-head, .work-card:not(.marquee-card)'
+    );
+
+    revealItems.forEach((item, index) => {
+      item.classList.add('reveal');
+      if (item.classList.contains('work-card')) {
+        item.style.setProperty('--delay', `${(index % 4) * 90}ms`);
+      }
+    });
+
+    const revealObserver = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('in-view');
+          revealObserver.unobserve(entry.target);
+        }
+      });
+    }, {
+      threshold: 0.16,
+      rootMargin: '0px 0px -70px 0px'
+    });
+
+    revealItems.forEach(item => revealObserver.observe(item));
+
+    window.addEventListener('scroll', setActiveLink);
+    setActiveLink();
+  </script>
+</body>
+</html>

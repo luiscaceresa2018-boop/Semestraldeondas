@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Simulador | Transmisión de Información mediante Ondas Electromagnéticas: Intensidad Luz Visible</title>
+<style>
+:root{--ink:#111114;--muted:#666672;--line:#dadbe3;--accent:#7c3cff;--c1:#2d7dd2;--c2:#ff7a00;--c3:#239a3b}
+*{box-sizing:border-box;margin:0;padding:0}
+body{min-height:100vh;background:#fff;color:var(--ink);font-family:"Times New Roman",Times,serif}
+button,input{font-family:"Times New Roman",Times,serif}
+.main{width:min(1240px,100%);margin:0 auto;padding:40px 24px 34px;display:grid;gap:22px}
+h1{font-size:clamp(34px,4vw,56px);font-weight:400;line-height:.95;letter-spacing:-1px}
+.scene{position:relative;height:400px;overflow:hidden;background:#fff}
+.darkbox{position:absolute;left:6%;right:6%;top:16px;bottom:92px;border:2px solid #111;background:#1b1b1f}
+.axis{position:absolute;left:18%;right:9%;bottom:38px;height:60px}.axis-line{position:absolute;left:0;right:0;top:10px;height:1px;background:#9e9eaa}
+.tick{position:absolute;top:4px;width:1px;height:14px;background:#9e9eaa}.tick.major{top:0;height:22px;background:#555560}.tick-label{position:absolute;top:25px;transform:translateX(-50%);font-size:14px;color:#555;white-space:nowrap}.axis-title{position:absolute;left:0;right:0;top:48px;text-align:center;color:#555;font-size:14px}
+.dot-led{position:absolute;width:18px;height:18px;border-radius:50%;background:#eee;border:1px solid #c9c9d0;z-index:5}.dot-led.start{left:10%;top:90px}.dot-led.data{top:166px;transform:translateX(-50%);cursor:grab}.dot-led.data:active{cursor:grabbing}
+.led-glow{position:absolute;width:36px;height:36px;border-radius:50%;filter:blur(10px);opacity:0;pointer-events:none;transition:opacity .08s ease}.start-glow{left:-9px;top:-9px;background:rgba(255,250,180,.95)}.data-glow{left:-9px;top:-9px;background:rgba(255,240,150,.95)}
+.ldr{position:absolute;left:8.6%;top:207px;z-index:5}.ldr img{width:82px;height:82px;object-fit:contain;display:block}.fallback{width:82px;height:82px;display:grid;place-items:center;border:1px dashed #bbbcc7;color:#666;background:#fff;font-size:12px;text-align:center;padding:6px}.hidden{display:none !important}.ldr-value{position:absolute;left:0;top:84px;color:#fff;background:rgba(0,0,0,.35);font-size:18px;padding:5px 9px;white-space:nowrap}
+.distance-tag{position:absolute;left:50%;top:26px;transform:translateX(-50%);color:#111;background:#fff;padding:2px 6px;font-size:15px;white-space:nowrap}
+.grid{display:grid;grid-template-columns:1fr;gap:22px}.panel h2{font-size:29px;font-weight:400;margin-bottom:10px}.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.msg{flex:1;min-width:220px;border:none;border-bottom:1px solid #111;outline:none;padding:12px 2px;font-size:26px;background:#fff}.btn{border:none;background:#111;color:#fff;padding:13px 18px;font-size:17px;cursor:pointer;transition:.2s ease}.btn.secondary{background:#fff;color:#111;border-bottom:1px solid #111}.btn:hover{transform:translateY(-2px);background:var(--accent);color:#fff}.btn.secondary:hover{background:#fff;color:var(--accent)}.btn:disabled{opacity:.45;transform:none;cursor:not-allowed}
+.binary-wrap{display:flex;flex-wrap:wrap;gap:10px;margin-top:12px}.binary-chip{border-bottom:1px solid var(--line);padding:8px 10px;min-width:150px}.binary-chip .char{font-size:17px;color:#333;margin-bottom:3px}.binary-chip .bits{font-family:"Courier New",monospace;font-size:18px}
+.note{color:#666;margin-top:10px;font-size:16px;line-height:1.35}.status{margin-top:8px;font-size:16px;color:#555}
+.chart-wrap{height:410px}canvas{width:100%;height:100%;display:block}
+@media(max-width:960px){.scene{height:430px}.axis{left:27%;right:7%}.ldr img,.fallback{width:72px;height:72px}}
+</style>
+</head>
+<body>
+<main class="main">
+  <h1>Transmisión de Información mediante Ondas Electromagnéticas: Intensidad Luz Visible</h1>
+  <section class="scene">
+    <div class="darkbox"></div>
+    <div class="dot-led start" id="startLed"><div class="led-glow start-glow" id="startGlow"></div></div>
+    <div class="ldr">
+      <img id="ldrImg" src="../assets/sensores/ldr.png" alt="Fotoresistencia" onerror="this.classList.add('hidden');document.getElementById('ldrFallback').classList.remove('hidden');">
+      <div id="ldrFallback" class="fallback hidden">Fotoresistencia</div>
+      <div class="ldr-value">LDR: <span id="ldrValue">14,0</span></div>
+    </div>
+    <div class="dot-led data" id="dataLed"><div class="led-glow data-glow" id="dataGlow"></div><div class="distance-tag"><span id="distanceText">8,0</span> cm</div></div>
+    <div class="axis" id="axis"><div class="axis-line"></div><div class="axis-title">Distancia LED de datos - fotoresistencia (cm)</div></div>
+  </section>
+  <section class="grid">
+    <section class="panel">
+      <h2>Mensaje</h2>
+      <div class="row">
+        <input class="msg" id="messageInput" type="text" maxlength="24" placeholder="Escribe cualquier mensaje" autocomplete="off">
+        <button class="btn" id="transmitBtn">Transmitir</button>
+        <button class="btn secondary" id="clearBtn">Limpiar</button>
+      </div>
+      <div class="binary-wrap" id="binaryWrap"></div>
+      <p class="note">Cada símbolo dura 5 s. El LED de inicio/cierre emite 400. El LED de datos transmite 1 con 255 y 0 con 100. Puedes superponer hasta 3 distancias en colores distintos.</p>
+      <div class="status" id="statusText">Trazas cargadas: 0 de 3.</div>
+    </section>
+    <section class="panel">
+      <h2>Señal en tiempo real</h2>
+      <div class="chart-wrap"><canvas id="chart" width="1120" height="410"></canvas></div>
+    </section>
+  </section>
+</main>
+<script>
+const MIN_CM=3, MAX_CM=23, SYMBOL_TIME=5, SAMPLE_STEP=0.12;
+const COLORS=['#2d7dd2','#ff7a00','#239a3b'];
+const axis=document.getElementById('axis'), dataLed=document.getElementById('dataLed'), distanceText=document.getElementById('distanceText');
+const messageInput=document.getElementById('messageInput'), binaryWrap=document.getElementById('binaryWrap'), transmitBtn=document.getElementById('transmitBtn'), clearBtn=document.getElementById('clearBtn');
+const ldrValue=document.getElementById('ldrValue'), startGlow=document.getElementById('startGlow'), dataGlow=document.getElementById('dataGlow'), statusText=document.getElementById('statusText');
+const chart=document.getElementById('chart'), ctx=chart.getContext('2d');
+let distanceCm=8, dragging=false, transmitting=false;
+let traces=[]; // {distance, points, color}
+let currentAnimatedPoints=[]; let currentLabels=[]; let lastMessage='';
+function fmt(n,d=1){return Number(n).toFixed(d).replace('.',',');}
+function visibleChar(ch){return ch===' ' ? '[espacio]' : ch;}
+function asciiBits(text){return text.split('').map(ch=>({ch,code:ch.charCodeAt(0),bits:ch.charCodeAt(0).toString(2).padStart(8,'0')}));}
+function renderBinary(){const text=messageInput.value, rows=asciiBits(text); if(!rows.length){binaryWrap.innerHTML='<div class="binary-chip"><div class="char">Código binario</div><div class="bits">—</div></div>'; return;} binaryWrap.innerHTML=rows.map(r=>`<div class="binary-chip"><div class="char">${visibleChar(r.ch)} · ASCII ${r.code}</div><div class="bits">${r.bits}</div></div>`).join('');}
+function buildSymbols(text){const sy=[{type:'inicio',bit:'',emitted:400}]; asciiBits(text).forEach(r=>r.bits.split('').forEach(bit=>sy.push({type:'bit',bit,emitted:bit==='1'?255:100}))); sy.push({type:'cierre',bit:'',emitted:400}); return sy;}
+function buildRuler(){const labels=[3,5,7,8,10,15,20,23]; for(let cm=MIN_CM; cm<=MAX_CM; cm+=1){const p=(cm-MIN_CM)/(MAX_CM-MIN_CM)*100; const t=document.createElement('div'); t.className='tick'+(labels.includes(cm)?' major':''); t.style.left=p+'%'; axis.appendChild(t); if(labels.includes(cm)){const lab=document.createElement('div'); lab.className='tick-label'; lab.style.left=p+'%'; lab.textContent=cm; axis.appendChild(lab);}}}
+function pointerToDistance(clientX){const r=axis.getBoundingClientRect(); let p=(clientX-r.left)/r.width; p=Math.max(0,Math.min(1,p)); return Math.round((MIN_CM+p*(MAX_CM-MIN_CM))*10)/10;}
+function placeLed(){const scene=document.querySelector('.scene').getBoundingClientRect(); const r=axis.getBoundingClientRect(); const p=(distanceCm-MIN_CM)/(MAX_CM-MIN_CM); const x=(r.left-scene.left)+p*r.width; dataLed.style.left=(x/scene.width*100)+'%'; distanceText.textContent=fmt(distanceCm,1);}
+function distanceFactor(cm){const p=(cm-MIN_CM)/(MAX_CM-MIN_CM); return 1-p*0.55;}
+function peakFor(emitted, cm){const base=14, f=distanceFactor(cm); if(emitted===400) return base+21*f; if(emitted===255) return base+17*f; if(emitted===100) return base+5*f; return base;}
+function pulseSamples(symbol, cm, offset=0){const base=14, peak=peakFor(symbol.emitted, cm), arr=[]; const n=Math.round(SYMBOL_TIME/SAMPLE_STEP); for(let i=0;i<=n;i++){const local=i*SAMPLE_STEP; let y=base; const center=1.35, width=symbol.emitted===100?0.42:0.48; const g=Math.exp(-Math.pow(local-center,2)/(2*width*width)); if(local>=0.35&&local<=3.05) y=base+(peak-base)*g; if(local>3.05) y=base+(peak-base)*0.035*Math.exp(-(local-3.05)/0.25); const noise=(Math.random()*2-1)*0.18; arr.push({t:offset+local, y:Math.max(12,y+noise)});} return arr;}
+function makeTrace(text, cm){const symbols=buildSymbols(text); let pts=[], labels=[]; for(let i=0;i<symbols.length;i++){const s=symbols[i], off=i*SYMBOL_TIME; if(s.type==='bit') labels.push({t:off+SYMBOL_TIME/2, text:s.bit}); const chunk=pulseSamples(s, cm, off); chunk.forEach((p,idx)=>{if(pts.length&&idx===0) return; pts.push(p);});} return {points:pts, labels};}
+function chartBase(maxT){const w=chart.width,h=chart.height,pad={l:82,r:22,t:24,b:68},plotW=w-pad.l-pad.r,plotH=h-pad.t-pad.b; const xMax=Math.max(5,maxT); const xMap=x=>pad.l+x/xMax*plotW; const yMap=y=>h-pad.b-(y-10)/(36-10)*plotH; ctx.clearRect(0,0,w,h); ctx.strokeStyle='#e2e2ea'; ctx.lineWidth=1; for(let t=0;t<=xMax+0.001;t+=5){const x=xMap(t); ctx.beginPath(); ctx.moveTo(x,pad.t); ctx.lineTo(x,h-pad.b); ctx.stroke();} [10,15,20,25,30,35].forEach(v=>{const y=yMap(v); ctx.beginPath(); ctx.moveTo(pad.l,y); ctx.lineTo(w-pad.r,y); ctx.stroke();}); ctx.strokeStyle='#111'; ctx.lineWidth=1.7; ctx.beginPath(); ctx.moveTo(pad.l,pad.t); ctx.lineTo(pad.l,h-pad.b); ctx.lineTo(w-pad.r,h-pad.b); ctx.stroke(); ctx.fillStyle='#555'; ctx.font='16px Times New Roman'; ctx.textAlign='center'; for(let t=0;t<=xMax+0.001;t+=5) ctx.fillText(fmt(t,0),xMap(t),h-pad.b+26); ctx.textAlign='right'; [10,15,20,25,30,35].forEach(v=>ctx.fillText(String(v),pad.l-10,yMap(v)+5)); ctx.save(); ctx.translate(24,(pad.t+h-pad.b)/2); ctx.rotate(-Math.PI/2); ctx.textAlign='center'; ctx.fillStyle='#111'; ctx.font='18px Times New Roman'; ctx.fillText('Intensidad registrada',0,0); ctx.restore(); ctx.textAlign='center'; ctx.fillStyle='#111'; ctx.font='18px Times New Roman'; ctx.fillText('Tiempo relativo (s)',(pad.l+w-pad.r)/2,h-16); return {xMap,yMap,pad};}
+function drawAll(){const maxT=Math.max(...traces.map(t=>t.points.length?t.points[t.points.length-1].t:0), currentAnimatedPoints.length?currentAnimatedPoints[currentAnimatedPoints.length-1].t:0, 5); const m=chartBase(maxT); traces.forEach(tr=>{ctx.strokeStyle=tr.color; ctx.lineWidth=2.3; ctx.beginPath(); tr.points.forEach((p,i)=>{const x=m.xMap(p.t), y=m.yMap(p.y); if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);}); ctx.stroke();}); if(currentAnimatedPoints.length){ctx.strokeStyle=COLORS[Math.min(traces.length,2)]; ctx.lineWidth=2.5; ctx.beginPath(); currentAnimatedPoints.forEach((p,i)=>{const x=m.xMap(p.t), y=m.yMap(p.y); if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);}); ctx.stroke();}
+ const labels=(traces[0]?.labels)||currentLabels; ctx.fillStyle='#555'; ctx.font='14px Times New Roman'; ctx.textAlign='center'; labels.forEach(l=>ctx.fillText(l.text,m.xMap(l.t),m.pad.t+18));
+ // legend
+ const legendItems=traces.map(t=>({color:t.color,label:`${fmt(t.distance,1)} cm`})); if(currentAnimatedPoints.length){legendItems.push({color:COLORS[Math.min(traces.length,2)],label:`${fmt(distanceCm,1)} cm`});}
+ let lx=m.pad.l+10, ly=m.pad.t+18; legendItems.forEach((it,idx)=>{ctx.fillStyle=it.color; ctx.fillRect(lx,ly-10+idx*20,14,3); ctx.fillStyle='#333'; ctx.textAlign='left'; ctx.font='15px Times New Roman'; ctx.fillText(it.label,lx+22,ly-6+idx*20);}); }
+function setGlow(type, bit=''){startGlow.style.opacity=0; dataGlow.style.opacity=0; if(type==='inicio'||type==='cierre') startGlow.style.opacity=.98; if(type==='bit') dataGlow.style.opacity=bit==='1'?.98:.55;}
+function updateStatus(){statusText.textContent=`Trazas cargadas: ${traces.length} de 3.`;}
+async function transmit(){if(transmitting) return; const text=messageInput.value; if(!text) return; if(traces.length>=3){statusText.textContent='Ya tienes 3 distancias superpuestas. Presiona “Limpiar” para comenzar de nuevo.'; return;} if(lastMessage && text!==lastMessage && traces.length>0){statusText.textContent='Para superponer, usa el mismo mensaje en las 3 distancias o presiona “Limpiar”.'; return;} const traceData=makeTrace(text,distanceCm); transmitting=true; transmitBtn.disabled=true; currentAnimatedPoints=[]; currentLabels=traceData.labels; lastMessage=text; const symbols=buildSymbols(text); for(let i=0;i<symbols.length;i++){const sym=symbols[i]; setGlow(sym.type,sym.bit); const chunk=pulseSamples(sym,distanceCm,i*SYMBOL_TIME); for(let j=0;j<chunk.length;j++){const p=chunk[j]; if(currentAnimatedPoints.length && Math.abs(currentAnimatedPoints[currentAnimatedPoints.length-1].t-p.t)<1e-9) continue; currentAnimatedPoints.push(p); ldrValue.textContent=fmt(p.y,1); drawAll(); await new Promise(r=>setTimeout(r,35)); }} traces.push({distance:distanceCm, points:[...currentAnimatedPoints], labels:traceData.labels, color:COLORS[traces.length]}); currentAnimatedPoints=[]; currentLabels=[]; setGlow(''); transmitting=false; transmitBtn.disabled=false; updateStatus(); drawAll(); }
+function clearAll(){if(transmitting) return; messageInput.value=''; traces=[]; currentAnimatedPoints=[]; currentLabels=[]; lastMessage=''; renderBinary(); ldrValue.textContent='14,0'; drawAll(); setGlow(''); updateStatus();}
+dataLed.addEventListener('pointerdown',e=>{if(transmitting) return; dragging=true; dataLed.setPointerCapture(e.pointerId);}); dataLed.addEventListener('pointermove',e=>{if(!dragging||transmitting) return; distanceCm=pointerToDistance(e.clientX); placeLed();}); dataLed.addEventListener('pointerup',()=>dragging=false); dataLed.addEventListener('pointercancel',()=>dragging=false); axis.addEventListener('click',e=>{if(transmitting) return; distanceCm=pointerToDistance(e.clientX); placeLed();}); messageInput.addEventListener('input',renderBinary); transmitBtn.addEventListener('click',transmit); clearBtn.addEventListener('click',clearAll); window.addEventListener('resize',placeLed);
+buildRuler(); placeLed(); renderBinary(); drawAll(); setGlow(''); updateStatus();
+</script>
+</body>
+</html>
