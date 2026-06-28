@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Simulador | Resonancia y modos de vibración</title>
+<title>Simulador | Resonancia helicoidal 3D</title>
 <style>
 :root{
   --ink:#111114;
@@ -11,7 +11,11 @@
   --line:#d8d8df;
   --accent:#7c3cff;
 }
-*{box-sizing:border-box;margin:0;padding:0}
+*{
+  box-sizing:border-box;
+  margin:0;
+  padding:0
+}
 body{
   min-height:100vh;
   background:#fff;
@@ -30,97 +34,61 @@ h1{
   font-size:clamp(36px,5vw,62px);
   font-weight:400;
   line-height:.95;
-  letter-spacing:-1.2px;
+  letter-spacing:-1px;
 }
 .scene{
   position:relative;
-  height:390px;
+  height:420px;
   border-bottom:1px solid var(--line);
   overflow:hidden;
-  background:#fff;
+  background:#fdfdfd;
+  cursor: grab;
 }
-.support{
-  position:absolute;
-  top:84px;
-  width:20px;
-  height:225px;
-  background:#111;
-  z-index:2;
+.scene:active {
+  cursor: grabbing;
 }
-.support.left{left:72px}
-.support.right{left:828px}
-.support::after{
-  content:"";
-  position:absolute;
-  left:-26px;
-  right:-26px;
-  bottom:-14px;
-  height:14px;
-  background:#111;
+.hint{
+  position: absolute;
+  top: 15px;
+  left: 15px;
+  background: rgba(0,0,0,0.05);
+  padding: 6px 12px;
+  font-size: 14px;
+  color: #444;
+  border-radius: 4px;
+  pointer-events: none;
+  border: 1px solid rgba(0,0,0,0.1);
 }
 .wave-wrap{
   position:absolute;
-  left:92px;
-  top:92px;
-  width:736px;
-  height:200px;
+  left:0;
+  top:0;
+  width:100%;
+  height:100%;
 }
 #waveCanvas{
   width:100%;
   height:100%;
   display:block;
 }
-.ruler{
-  position:absolute;
-  left:92px;
-  top:320px;
-  width:736px;
-  height:44px;
-}
-.ruler-line{
-  position:absolute;
-  left:0;
-  right:0;
-  top:12px;
-  height:1px;
-  background:#9696a2;
-}
-.ruler::before,.ruler::after{
-  content:"";
-  position:absolute;
-  top:3px;
-  width:1px;
-  height:19px;
-  background:#555;
-}
-.ruler::before{left:0}
-.ruler::after{right:0}
-.length-text{
-  position:absolute;
-  left:50%;
-  top:24px;
-  transform:translateX(-50%);
-  padding:0 7px;
-  background:#fff;
-  color:#333;
-  font-size:18px;
-}
 .state{
   position:absolute;
-  right:22px;
-  top:18px;
-  width:210px;
-  border-bottom:1px solid var(--line);
-  padding-bottom:6px;
+  right:15px;
+  top:15px;
+  width:180px;
+  background: rgba(255,255,255,0.9);
+  border:1px solid var(--line);
+  padding:10px 12px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
 }
 .state small{
   display:block;
   color:#666;
-  font-size:15px;
-  margin-bottom:4px;
+  font-size:13px;
+  margin-bottom:2px;
 }
 .state strong{
-  font-size:26px;
+  font-size:22px;
   font-weight:400;
 }
 .controls{
@@ -140,7 +108,7 @@ h1{
   gap:12px;
   align-items:center;
   margin-bottom:15px;
-  color:#555;
+  color:#333;
   font-size:18px;
 }
 .control input[type="range"]{
@@ -183,29 +151,29 @@ h1{
     top:auto;
     width:100%;
     margin-top:14px;
+    box-shadow: none;
+    border: none;
+    border-bottom: 1px solid var(--line);
+    padding: 0 0 10px 0;
+    background: transparent;
   }
   .controls{grid-template-columns:1fr}
-  .control{grid-template-columns:1fr}
+  .control{grid-template-columns:1fr; gap: 8px;}
+  .hint { display: none; }
 }
 </style>
 </head>
 <body>
 <main class="page">
   <header>
-    <h1>Resonancia y modos de vibración</h1>
+    <h1>Resonancia modos de vibración</h1>
   </header>
 
-  <section class="scene">
-    <div class="support left"></div>
-    <div class="support right" id="rightSupport"></div>
-
+  <section class="scene" id="sceneBox">
+    <div class="hint">↺ Haz clic y arrastra para rotar la vista 3D</div>
+    
     <div class="wave-wrap" id="waveWrap">
-      <canvas id="waveCanvas" width="736" height="200"></canvas>
-    </div>
-
-    <div class="ruler" id="ruler">
-      <div class="ruler-line"></div>
-      <div class="length-text" id="lengthText">L = 1,00 m</div>
+      <canvas id="waveCanvas"></canvas>
     </div>
 
     <div class="state">
@@ -219,15 +187,15 @@ h1{
       <h2>Datos</h2>
 
       <div class="control">
-        <span>Frecuencia</span>
+        <span>Frecuencia (Hz)</span>
         <input id="freqRange" type="range" min="0.5" max="30" step="0.1" value="6">
         <input id="freqInput" type="number" min="0.5" max="30" step="0.1" value="6">
       </div>
 
       <div class="control">
-        <span>Longitud</span>
-        <input id="lengthRange" type="range" min="0.30" max="1.50" step="0.01" value="1.00">
-        <input id="lengthInput" type="number" min="0.30" max="1.50" step="0.01" value="1.00">
+        <span>Longitud (cm)</span>
+        <input id="lengthRange" type="range" min="30" max="100" step="1" value="100">
+        <input id="lengthInput" type="number" min="30" max="100" step="1" value="100">
       </div>
 
       <div class="control">
@@ -241,12 +209,12 @@ h1{
       <h2>Resultados</h2>
 
       <div class="results">
-        <div class="card"><small>RPM</small><strong id="rpmRead">—</strong></div>
-        <div class="card"><small>Período</small><strong id="periodRead">—</strong></div>
+        <div class="card"><small>RPM del motor</small><strong id="rpmRead">—</strong></div>
+        <div class="card"><small>Período (s)</small><strong id="periodRead">—</strong></div>
         <div class="card"><small>λ del modo</small><strong id="lambdaRead">—</strong></div>
-        <div class="card"><small>Armónicos visibles</small><strong id="harmonicsRead">—</strong></div>
-        <div class="card"><small>Nodos visibles</small><strong id="nodesRead">—</strong></div>
-        <div class="card"><small>Antinodos visibles</small><strong id="antinodesRead">—</strong></div>
+        <div class="card"><small>Armónicos (n)</small><strong id="harmonicsRead">—</strong></div>
+        <div class="card"><small>Nodos totales</small><strong id="nodesRead">—</strong></div>
+        <div class="card"><small>Antinodos</small><strong id="antinodesRead">—</strong></div>
       </div>
     </div>
   </section>
@@ -255,11 +223,7 @@ h1{
 <script>
 const canvas = document.getElementById('waveCanvas');
 const ctx = canvas.getContext('2d');
-
-const waveWrap = document.getElementById('waveWrap');
-const ruler = document.getElementById('ruler');
-const rightSupport = document.getElementById('rightSupport');
-const lengthText = document.getElementById('lengthText');
+const sceneBox = document.getElementById('sceneBox');
 
 const stateRead = document.getElementById('stateRead');
 const rpmRead = document.getElementById('rpmRead');
@@ -276,19 +240,69 @@ const lengthInput = document.getElementById('lengthInput');
 const ampRange = document.getElementById('ampRange');
 const ampInput = document.getElementById('ampInput');
 
-const VREF = 6.0; // con L = 1,00 m y f = 6 Hz -> n = 2, o sea 3 nodos visibles
-let t = 0;
-let last = performance.now();
-
-function fmt(n, d=2){
-  return Number(n).toFixed(d).replace('.', ',');
+// Ajustar canvas
+function resizeCanvas() {
+  canvas.width = sceneBox.clientWidth;
+  canvas.height = sceneBox.clientHeight;
 }
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
+
+// Controles 3D (Cámara)
+let camYaw = 0.2;   // Rotación horizontal
+let camPitch = 0.3; // Inclinación vertical
+let isDragging = false;
+let lastX = 0, lastY = 0;
+
+sceneBox.addEventListener('mousedown', (e) => {
+  isDragging = true;
+  lastX = e.clientX;
+  lastY = e.clientY;
+});
+window.addEventListener('mouseup', () => { isDragging = false; });
+window.addEventListener('mousemove', (e) => {
+  if (!isDragging) return;
+  const dx = e.clientX - lastX;
+  const dy = e.clientY - lastY;
+  camYaw += dx * 0.01;
+  camPitch -= dy * 0.01;
+  // Limitar pitch para no poner la vista de cabeza
+  camPitch = Math.max(-Math.PI/2.2, Math.min(Math.PI/2.2, camPitch)); 
+  lastX = e.clientX;
+  lastY = e.clientY;
+});
+
+// Touch support
+sceneBox.addEventListener('touchstart', (e) => {
+  isDragging = true;
+  lastX = e.touches[0].clientX;
+  lastY = e.touches[0].clientY;
+}, {passive: true});
+window.addEventListener('touchend', () => { isDragging = false; });
+window.addEventListener('touchmove', (e) => {
+  if (!isDragging) return;
+  const dx = e.touches[0].clientX - lastX;
+  const dy = e.touches[0].clientY - lastY;
+  camYaw += dx * 0.01;
+  camPitch -= dy * 0.01;
+  camPitch = Math.max(-Math.PI/2.2, Math.min(Math.PI/2.2, camPitch));
+  lastX = e.touches[0].clientX;
+  lastY = e.touches[0].clientY;
+}, {passive: true});
+
+// Física y Variables del Sistema
+const VREF = 6.0; // Velocidad calculada en m/s (para L=1m, f=6Hz, n=2)
+let t = 0;
+let lastTime = performance.now();
+
+function fmt(n, d=2){ return Number(n).toFixed(d).replace('.', ','); }
 function num(el){ return Number(el.value); }
 
 function f(){ return Math.max(0.5, num(freqInput) || 6); }
-function L(){ return Math.max(0.30, num(lengthInput) || 1); }
+function L_cm(){ return Math.max(30, Math.min(100, num(lengthInput) || 100)); } // Longitud en cm
 function A(){ return Math.max(1, num(ampInput) || 5); }
 
+// Sincronizar inputs
 function sync(range, input){ input.value = range.value; }
 function syncBack(input, range, d){
   let x = Number(input.value);
@@ -300,190 +314,270 @@ function syncBack(input, range, d){
 freqRange.addEventListener('input', () => sync(freqRange, freqInput));
 freqInput.addEventListener('input', () => syncBack(freqInput, freqRange, 1));
 lengthRange.addEventListener('input', () => sync(lengthRange, lengthInput));
-lengthInput.addEventListener('input', () => syncBack(lengthInput, lengthRange, 2));
+lengthInput.addEventListener('input', () => syncBack(lengthInput, lengthRange, 0));
 ampRange.addEventListener('input', () => sync(ampRange, ampInput));
 ampInput.addEventListener('input', () => syncBack(ampInput, ampRange, 1));
 
 function systemData(){
   const freq = f();
-  const len = L();
-  const nFloat = 2 * len * freq / VREF;
-  const n = Math.max(1, Math.round(nFloat));
-  const fn = n * VREF / (2 * len);
+  const lenM = L_cm() / 100; // Física en metros
+  const nFloat = 2 * lenM * freq / VREF; 
+  const n = Math.max(1, Math.round(nFloat)); 
+  const fn = n * VREF / (2 * lenM); 
   const error = Math.abs(freq - fn) / fn;
   const resonant = error < 0.075;
   const close = error < 0.15;
-  return {freq, len, nFloat, n, fn, error, resonant, close};
+  return {freq, lenM, nFloat, n, fn, resonant, close};
 }
 
-function updateGeometry(){
-  const len = L();
-  const p = (len - 0.30) / (1.50 - 0.30);
-  const width = 260 + p * 520;
+// Proyección 3D a 2D
+function project3D(x, y, z, cx, cy) {
+  let px = x - cx;
+  let py = y;
+  let pz = z;
 
-  waveWrap.style.width = width + 'px';
-  ruler.style.width = width + 'px';
+  // Rotar en Y (Yaw)
+  let x1 = px * Math.cos(camYaw) - pz * Math.sin(camYaw);
+  let z1 = px * Math.sin(camYaw) + pz * Math.cos(camYaw);
 
-  // soporte derecho con un pequeño margen extra para que se vea el extremo del hilo
-  rightSupport.style.left = (72 + 20 + width + 8) + 'px';
+  // Rotar en X (Pitch)
+  let y2 = py * Math.cos(camPitch) - z1 * Math.sin(camPitch);
+  let z2 = py * Math.sin(camPitch) + z1 * Math.cos(camPitch);
 
-  lengthText.textContent = 'L = ' + fmt(len, 2) + ' m';
-}
-
-function visibleDomain(w){
-  // solo cuenta el hilo visible entre apoyos
-  return {x0: 8, x1: w - 8, width: w - 16};
-}
-
-function visibleCounts(d){
-  if(!d.resonant){
-    return {nodes:'—', antinodes:'—', harmonics:'—', lambda:'—'};
-  }
-
-  const w = canvas.width;
-  const dom = visibleDomain(w);
-  let nodes = 0;
-  let antinodes = 0;
-
-  for(let k = 0; k <= d.n; k++){
-    const x = dom.x0 + (k / d.n) * dom.width;
-    if(x >= dom.x0 && x <= dom.x1) nodes++;
-  }
-
-  for(let k = 0; k < d.n; k++){
-    const x = dom.x0 + ((k + 0.5) / d.n) * dom.width;
-    if(x > dom.x0 && x < dom.x1) antinodes++;
-  }
+  let fov = 800;
+  let scale = fov / (fov + z2);
 
   return {
-    nodes,
-    antinodes,
-    harmonics: d.n,
-    lambda: fmt(2 * d.len / d.n, 2) + ' m'
+    x: cx + x1 * scale,
+    y: cy + y2 * scale,
+    s: scale, // Escala por profundidad
+    z: z2     
   };
 }
 
-function updateResults(){
-  const d = systemData();
+function updateUI(d){
+  // Textos de estado
   stateRead.textContent = d.resonant ? 'Resonancia' : d.close ? 'Cerca' : 'Sin resonancia';
+  stateRead.style.color = d.resonant ? 'var(--accent)' : '#111';
+  
   rpmRead.textContent = fmt(60 * d.freq, 0);
-  periodRead.textContent = fmt(1 / d.freq, 3) + ' s';
+  periodRead.textContent = fmt(1 / d.freq, 3);
 
-  const counts = visibleCounts(d);
-  lambdaRead.textContent = counts.lambda;
-  harmonicsRead.textContent = counts.harmonics;
-  nodesRead.textContent = counts.nodes;
-  antinodesRead.textContent = counts.antinodes;
+  if(d.resonant) {
+    const lambdaCM = (2 * d.lenM / d.n) * 100; // a cm
+    lambdaRead.textContent = fmt(lambdaCM, 1) + ' cm';
+    harmonicsRead.textContent = d.n;
+    nodesRead.textContent = d.n + 1; // n bucles + 1 extremos
+    antinodesRead.textContent = d.n;
+  } else {
+    lambdaRead.textContent = '—';
+    harmonicsRead.textContent = '—';
+    nodesRead.textContent = '—';
+    antinodesRead.textContent = '—';
+  }
 }
 
-function drawEquilibrium(w, h, mid){
-  const dom = visibleDomain(w);
-  ctx.strokeStyle = '#aeb0b7';
+function drawSupports(dom, cx, cy) {
+  const supportH = 140; // Altura de la madera
+  
+  // Soporte Izquierdo
+  let p1Left = project3D(dom.x0, -supportH/2, 0, cx, cy);
+  let p2Left = project3D(dom.x0, supportH/2, 0, cx, cy);
+  
+  // Soporte Derecho
+  let p1Right = project3D(dom.x1, -supportH/2, 0, cx, cy);
+  let p2Right = project3D(dom.x1, supportH/2, 0, cx, cy);
+
+  ctx.lineCap = "round";
+  
+  // Dibujar izquierda
+  ctx.beginPath();
+  ctx.moveTo(p1Left.x, p1Left.y);
+  ctx.lineTo(p2Left.x, p2Left.y);
+  ctx.lineWidth = 14 * p1Left.s;
+  ctx.strokeStyle = '#555';
+  ctx.stroke();
+
+  // Dibujar derecha
+  ctx.beginPath();
+  ctx.moveTo(p1Right.x, p1Right.y);
+  ctx.lineTo(p2Right.x, p2Right.y);
+  ctx.lineWidth = 14 * p1Right.s;
+  ctx.stroke();
+}
+
+function drawRuler3D(dom, cx, cy) {
+  const rulerY = 110; // Distancia hacia abajo (debajo de los soportes)
+  const tickHalf = 8; // Tamaño de las marcas divisorias
+
+  // Calcular puntos proyectados
+  let pStart = project3D(dom.x0, rulerY, 0, cx, cy);
+  let pEnd = project3D(dom.x1, rulerY, 0, cx, cy);
+  
+  let pTick1Top = project3D(dom.x0, rulerY - tickHalf, 0, cx, cy);
+  let pTick1Bot = project3D(dom.x0, rulerY + tickHalf, 0, cx, cy);
+  
+  let pTick2Top = project3D(dom.x1, rulerY - tickHalf, 0, cx, cy);
+  let pTick2Bot = project3D(dom.x1, rulerY + tickHalf, 0, cx, cy);
+
+  let pText = project3D(dom.x0 + dom.width / 2, rulerY + 22, 0, cx, cy);
+
+  // Línea horizontal
+  ctx.beginPath();
+  ctx.moveTo(pStart.x, pStart.y);
+  ctx.lineTo(pEnd.x, pEnd.y);
+  ctx.lineWidth = 1.5;
+  ctx.strokeStyle = '#9696a2';
+  ctx.stroke();
+
+  // Marcas verticales en los extremos
+  ctx.beginPath();
+  ctx.moveTo(pTick1Top.x, pTick1Top.y);
+  ctx.lineTo(pTick1Bot.x, pTick1Bot.y);
+  ctx.moveTo(pTick2Top.x, pTick2Top.y);
+  ctx.lineTo(pTick2Bot.x, pTick2Bot.y);
   ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.moveTo(dom.x0, mid);
-  ctx.lineTo(dom.x1, mid);
-  ctx.stroke();
-}
-
-function drawResonance(w, h, mid, d, amp){
-  const dom = visibleDomain(w);
-  const phase = Math.sin(2 * Math.PI * t * d.freq * 0.18);
-
-  ctx.strokeStyle = '#111';
-  ctx.lineWidth = 3.2;
-  ctx.beginPath();
-  for(let i = 0; i <= 900; i++){
-    const u = i / 900;
-    const y = mid - amp * Math.sin(d.n * Math.PI * u) * phase;
-    const px = dom.x0 + u * dom.width;
-    if(i === 0) ctx.moveTo(px, y);
-    else ctx.lineTo(px, y);
-  }
+  ctx.strokeStyle = '#555';
   ctx.stroke();
 
-  // nodos visibles sobre el hilo visible
+  // Texto de la longitud
+  const text = 'L = ' + L_cm() + ' cm';
+  ctx.font = "16px 'Times New Roman', Times, serif";
+  const textWidth = ctx.measureText(text).width;
+  
+  // Dibujar un pequeño fondo para que el texto sea siempre legible
+  ctx.fillStyle = '#fdfdfd'; // Mismo color de fondo de la escena
+  ctx.fillRect(pText.x - textWidth / 2 - 6, pText.y - 12, textWidth + 12, 24);
+  
+  // Escribir el texto
   ctx.fillStyle = '#111';
-  ctx.strokeStyle = '#fff';
-  ctx.lineWidth = 1.8;
-  for(let k = 0; k <= d.n; k++){
-    const x = dom.x0 + (k / d.n) * dom.width;
-    if(x < dom.x0 || x > dom.x1) continue;
-    ctx.beginPath();
-    ctx.arc(x, mid, 5.2, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.stroke();
-  }
-
-  // antinodos visibles
-  ctx.strokeStyle = '#7c3cff';
-  ctx.lineWidth = 2.6;
-  for(let k = 0; k < d.n; k++){
-    const x = dom.x0 + ((k + 0.5) / d.n) * dom.width;
-    if(x <= dom.x0 || x >= dom.x1) continue;
-    ctx.beginPath();
-    ctx.arc(x, mid, 8.5, 0, Math.PI * 2);
-    ctx.stroke();
-  }
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(text, pText.x, pText.y);
 }
 
-function drawClose(w, h, mid, d, amp){
-  const dom = visibleDomain(w);
-  const phase = Math.sin(2 * Math.PI * t * d.freq * 0.20);
-
-  ctx.strokeStyle = '#111';
-  ctx.lineWidth = 3;
+function drawRope3D(dom, cx, cy, d, ampPx) {
+  const numPoints = 200; // Resolución de la cuerda
+  const freqRad = 2 * Math.PI * d.freq;
+  
+  // Línea eje de equilibrio (Tenue)
+  let pStart = project3D(dom.x0, 0, 0, cx, cy);
+  let pEnd = project3D(dom.x1, 0, 0, cx, cy);
   ctx.beginPath();
-  for(let i = 0; i <= 900; i++){
-    const u = i / 900;
-    const standing = Math.sin(d.n * Math.PI * u) * phase;
-    const travel = Math.sin(2 * Math.PI * (d.nFloat * u - t * d.freq * 0.12));
-    const y = mid - amp * (0.55 * standing + 0.20 * travel);
-    const px = dom.x0 + u * dom.width;
-    if(i === 0) ctx.moveTo(px, y);
-    else ctx.lineTo(px, y);
-  }
+  ctx.moveTo(pStart.x, pStart.y);
+  ctx.lineTo(pEnd.x, pEnd.y);
+  ctx.lineWidth = 1;
+  ctx.strokeStyle = 'rgba(0,0,0,0.15)';
   ctx.stroke();
-}
 
-function drawNotResonant(w, h, mid, d, amp){
-  const dom = visibleDomain(w);
-  const phase = t * d.freq * 0.18;
+  // Si hay resonancia, dibujar guías de volumen (los anillos en antinodos)
+  if (d.resonant) {
+    ctx.strokeStyle = 'rgba(124, 60, 255, 0.15)'; // Morado claro translúcido
+    for(let k = 0; k < d.n; k++){
+      const uAnti = (k + 0.5) / d.n;
+      const xAnti = dom.x0 + uAnti * dom.width;
+      const ampMax = ampPx; // Amplitud máxima en antinodo
 
-  ctx.strokeStyle = '#111';
-  ctx.lineWidth = 3;
+      ctx.beginPath();
+      for(let j = 0; j <= 40; j++){
+        const ang = (j / 40) * Math.PI * 2;
+        const y3D = ampMax * Math.cos(ang);
+        const z3D = ampMax * Math.sin(ang);
+        const pRing = project3D(xAnti, y3D, z3D, cx, cy);
+        if(j === 0) ctx.moveTo(pRing.x, pRing.y);
+        else ctx.lineTo(pRing.x, pRing.y);
+      }
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+  }
+
+  // Dibujar la CUERDA GÍRATORIA en el instante de tiempo t
   ctx.beginPath();
-  for(let i = 0; i <= 900; i++){
-    const u = i / 900;
-    const y = mid - amp * 0.35 * Math.sin(2 * Math.PI * (d.nFloat * u - phase));
-    const px = dom.x0 + u * dom.width;
-    if(i === 0) ctx.moveTo(px, y);
-    else ctx.lineTo(px, y);
+  for (let i = 0; i <= numPoints; i++) {
+    const u = i / numPoints;
+    const x3D = dom.x0 + u * dom.width;
+    let y3D = 0, z3D = 0;
+
+    if (d.resonant) {
+      // Movimiento helicoidal perfecto
+      const ampWave = ampPx * Math.sin(d.n * Math.PI * u);
+      const angle = freqRad * t;
+      y3D = ampWave * Math.cos(angle);
+      z3D = ampWave * Math.sin(angle);
+    } else if (d.close) {
+      // Cercano: helicoide inestable (se tambalea)
+      let currentAmp = ampPx * Math.sin(d.nFloat * Math.PI * u);
+      currentAmp += (Math.random() - 0.5) * 0.1 * ampPx;
+      const angle = freqRad * t + (Math.random() - 0.5) * 0.2;
+      y3D = currentAmp * Math.cos(angle);
+      z3D = currentAmp * Math.sin(angle);
+    } else {
+      // Ruido sin forma clara
+      let currentAmp = (Math.random() - 0.5) * 0.3 * ampPx;
+      const angle = freqRad * t + (Math.random() - 0.5) * Math.PI;
+      y3D = currentAmp * Math.cos(angle);
+      z3D = currentAmp * Math.sin(angle);
+    }
+
+    const p = project3D(x3D, y3D, z3D, cx, cy);
+    if (i === 0) ctx.moveTo(p.x, p.y);
+    else ctx.lineTo(p.x, p.y);
   }
+  
+  // Estilos de la cuerda principal
+  ctx.strokeStyle = d.resonant ? 'var(--accent)' : d.close ? '#ff9800' : '#444';
+  ctx.lineWidth = d.resonant ? 3.5 : 2.5;
+  ctx.lineJoin = 'round';
   ctx.stroke();
+
+  // Puntos fijos en los extremos y Nodos visibles
+  if (d.resonant) {
+    ctx.fillStyle = '#111';
+    for(let k = 0; k <= d.n; k++){
+      const uNode = k / d.n;
+      const xNode = dom.x0 + uNode * dom.width;
+      const pNode = project3D(xNode, 0, 0, cx, cy);
+      
+      ctx.beginPath();
+      ctx.arc(pNode.x, pNode.y, 4 * pNode.s, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
 }
 
-function draw(){
-  updateGeometry();
-  updateResults();
-
+function draw() {
   const w = canvas.width;
   const h = canvas.height;
-  const mid = h / 2;
-  const d = systemData();
-  const amp = A() * 7;
-
   ctx.clearRect(0, 0, w, h);
-  drawEquilibrium(w, h, mid);
 
-  if(d.resonant) drawResonance(w, h, mid, d, amp);
-  else if(d.close) drawClose(w, h, mid, d, amp);
-  else drawNotResonant(w, h, mid, d, amp);
+  // Lógica geométrica de 2D base
+  const maxPX = Math.min(w * 0.8, 800); 
+  const currentPX = (L_cm() / 100) * maxPX;
+  const dom = { 
+    x0: (w - currentPX) / 2, // Centrar cuerda horizontalmente
+    width: currentPX 
+  };
+  dom.x1 = dom.x0 + dom.width;
+  
+  const cx = dom.x0 + dom.width / 2;
+  const cy = h / 2 - 20; // Subimos ligeramente el centro para que la regla se vea bien
+
+  const d = systemData();
+  updateUI(d);
+
+  // Escalar amplitud (1 = poco, 10 = mucho)
+  const ampPx = A() * 8; 
+
+  // Orden de dibujado 3D
+  drawSupports(dom, cx, cy);
+  drawRope3D(dom, cx, cy, d, ampPx);
+  drawRuler3D(dom, cx, cy); // Dibujar la regla al final para que quede por encima visualmente
 }
 
-function animate(now){
-  const dt = Math.min(0.05, (now - last) / 1000);
-  last = now;
+function animate(now) {
+  const dt = Math.min(0.05, (now - lastTime) / 1000);
+  lastTime = now;
   t += dt;
   draw();
   requestAnimationFrame(animate);
