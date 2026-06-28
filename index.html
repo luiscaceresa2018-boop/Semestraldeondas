@@ -672,7 +672,55 @@
       stroke-linejoin: round;
     }
 
+    .floating-actions {
+      position: fixed;
+      right: 18px;
+      bottom: 20px;
+      z-index: 1400;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 10px;
+    }
 
+    .floating-avatar,
+    .floating-link {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid rgba(34, 32, 32, 0.08);
+      box-shadow: 0 10px 28px rgba(0, 0, 0, 0.14);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .floating-avatar:hover,
+    .floating-link:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 14px 34px rgba(0, 0, 0, 0.18);
+    }
+
+    .floating-avatar {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      overflow: hidden;
+      background: #565151;
+    }
+
+    .floating-avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .floating-link {
+      padding: 10px 14px;
+      border-radius: 999px;
+      background: #36343420;
+      color: #000000;
+      font-size: 0.9rem;
+      font-family: var(--font-pixel);
+    }
 
     .navbar a,
     .btn,
@@ -879,6 +927,13 @@
     <path d="M35 205 C80 125, 125 280, 175 205 S255 125, 290 205" fill="none" stroke="#000" stroke-width="14" stroke-linecap="round" />
   </svg>
 
+  <div class="floating-actions" aria-label="Accesos rápidos">
+    <a class="floating-avatar" href="https://noobsaaibot13.github.io/" target="_blank" rel="noopener noreferrer" aria-label="Abrir chatbot">
+      <img src="image.png" alt="Botón del chatbot" />
+    </a>
+    <a class="floating-link" id="rotatingLink" href="https://noobsaaibot13.github.io/" target="_blank" rel="noopener noreferrer">¡Pongamónos a Prueba! - Ondy</a>
+  </div>
+
   <nav class="navbar" aria-label="Navegación principal">
     <a href="#inicio" class="active">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11.5 12 4l9 7.5"/><path d="M5 10.5V20h5v-5h4v5h5v-9.5"/></svg>
@@ -1059,7 +1114,7 @@
           </div>
         </a>
 
-        <a class="work-card marquee-card" href="proyectos/laboratorio-ondas-cuerda.html" aria-label="Abrir Laboratorio: Propagación de ondas en cuerda">
+        <a class="work-card marquee-card" href="proyectos/proyecto-6-exp-2-lab.html" aria-label="Abrir Laboratorio: Propagación de ondas en cuerda">
           <div class="work-media">
             <img src="assets/proyectos/laboratorio-ondas-cuerda.png" alt="Laboratorio de propagación de ondas en una cuerda" onerror="this.style.display='none'; this.nextElementSibling.style.display='grid';" />
             <div class="image-missing" style="display:none;"><div><strong>Imagen</strong>Simulador de ondas</div></div>
@@ -1132,7 +1187,7 @@
           </div>
           <div class="work-body">
             <span class="project-badge">Proyecto 4</span>
-            <h3>Caracterización de iluminancia, transmitancia y absorbancia por distancia y materiales</h3>
+            <h3>Atenuación de luz por distancia y materiales</h3>
             <p>Permite comparar cómo cambia la intensidad de la luz al modificar la distancia o colocar materiales en su trayectoria.</p>
             <span class="work-link">
               Abrir simulador
@@ -1157,7 +1212,7 @@
           </div>
         </a>
 
-        <a class="work-card marquee-card" href="proyectos/laboratorio-ondas-cuerda.html" aria-label="Abrir Laboratorio: Propagación de ondas en cuerda">
+        <a class="work-card marquee-card" href="proyectos/proyecto-6-exp-2-lab.html" aria-label="Abrir Laboratorio: Propagación de ondas en cuerda">
           <div class="work-media">
             <img src="assets/proyectos/laboratorio-ondas-cuerda.png" alt="Laboratorio de propagación de ondas en una cuerda" onerror="this.style.display='none'; this.nextElementSibling.style.display='grid';" />
             <div class="image-missing" style="display:none;"><div><strong>Imagen</strong>Simulador de ondas</div></div>
@@ -1165,7 +1220,7 @@
           <div class="work-body">
             <span class="project-badge">Laboratorio</span>
             <h3>Propagación de ondas en cuerda</h3>
-            <p>Simula la propagación de ondas en una cuerda y relaciona la velocidad con la tensión.</p>
+            <p>Simula la propagación de ondas en una cuerda y relaciona la velocidad con la tensión y la densidad lineal.</p>
             <span class="work-link">
               Abrir simulador
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></svg>
@@ -1288,6 +1343,41 @@
     }
 
     typeLoop();
+
+    const rotatingLink = document.getElementById('rotatingLink');
+    const rotatingPhrases = [
+      '¡Pongamónos a Prueba! - Ondy',
+      'Explora y aprende con nosotros',
+      'Descubre nuevos puntos de vista cada día',
+      'Tu guía interactiva en ondas',
+      'Prueba algo nuevo ahora mismo',
+      'Aprende jugando con nuestros simuladores',
+      '¡Sumérgete en el mundo de las ondas!',
+      'Experimenta y comprende fenómenos ondulatorios',
+      '¡Haz clic y pon a prueba tus conocimientos!',
+      'Explora, compara y analiza con nuestros proyectos',
+      '¡Descubre la ciencia detrás de las ondas!',
+      'Aprende de manera interactiva y divertida',
+      '¡No te quedes atrás, únete a la experiencia!',
+      '¡Explora, aprende y diviértete con Ondy!',
+      '¡Descubre cómo la ciencia cobra vida con Ondy!',
+      '¡Sumérgete en el fascinante mundo de las ondas con Ondy!',
+      '¡Aprende, experimenta y diviértete con Ondy!',
+      '¡Explora, descubre y aprende con Ondy!',
+      '¡No te pierdas la oportunidad de aprender con Ondy!',
+      '¡Descubre la magia de las ondas con Ondy!',
+      '¡Aprende de manera interactiva con Ondy!',
+      '¡Explora, experimenta y aprende con Ondy!',
+    ];
+    let rotatingIndex = 0;
+
+    function rotateLinkText() {
+      const nextIndex = (rotatingIndex + 1) % rotatingPhrases.length;
+      rotatingIndex = nextIndex;
+      rotatingLink.textContent = rotatingPhrases[rotatingIndex];
+    }
+
+    setInterval(rotateLinkText, 20000);
 
     const navLinks = document.querySelectorAll('.navbar a');
     const sections = document.querySelectorAll('main section');

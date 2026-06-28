@@ -464,7 +464,7 @@
 </head>
 <body>
   <main class="page">
-    <h1 class="main-title">Características de iluminancia, transmitancia y absorbancia por distancia de material y con Arduino BH1750</h1>
+    <h1 class="main-title">Características de iluminancia, transmitancia y absorbancia por distancia y material</h1>
 
     <section class="sim">
       <nav class="tabs" aria-label="Fases del simulador">
@@ -665,6 +665,53 @@
     
     function avg(a){return a.reduce((s,x)=>s+x,0)/a.length;}
 
+    function calcMaterialRow(key, d, useNoise=true){
+      const mat = materials[key];
+      const Abase = -Math.log10(mat.T);
+      const Acurrent = Abase * (d / 0.1); // Aumenta/disminuye según el grosor.
+      const Tideal = Math.pow(10, -Acurrent);
+
+      const E0 = useNoise ? noise(baseE(10)) : baseE(10);
+      let Em = useNoise ? noise(baseE(10) * Tideal) : baseE(10) * Tideal;
+      if(Em < 0.1) Em = 0;
+
+      const T_meas = E0 > 0 ? Em / E0 : 0;
+      const Tpercent = T_meas * 100;
+      // Si la transmitancia se detecta o se muestra como 0,0 %, la absorbancia no se calcula con logaritmo.
+      // En ese caso se interpreta como absorbancia máxima.
+      const AobMax = Em <= 0 || T_meas <= 0 || Tpercent < 0.05;
+      const Aob = AobMax ? null : Math.log10(E0 / Em);
+
+      return {
+        key,
+        label: mat.label,
+        d,
+        E0,
+        Em,
+        T: T_meas,
+        Aob,
+        AobMax,
+        color: mat.color
+      };
+    }
+
+    function aobText(row){
+      return row.AobMax ? 'Máximo' : fmt2(row.Aob);
+    }
+
+    function updateMaterialEquation(row){
+      materialEquation.innerHTML = `${row.label} (${fmt(row.d,2)} cm): T = ${fmt(row.T*100,1)}% &nbsp;&nbsp; A<sub>ob</sub> = ${aobText(row)}`;
+    }
+
+    function refreshCurrentMaterialIfRegistered(){
+      const key = state.currentMaterial;
+      if(!state.materialData[key]) return false;
+      state.materialData[key] = calcMaterialRow(key, state.thickness, false);
+      renderMaterialsTable();
+      drawMaterialChart();
+      return true;
+    }
+
     function sceneMetrics(scene,ruler){
       const sr = scene.getBoundingClientRect();
       const rr = ruler.getBoundingClientRect();
@@ -776,6 +823,14 @@
       thicknessRange.value = state.thickness;
       thicknessInput.value = state.thickness;
       updateMaterialScene();
+      updateLiveLux();
+
+      // Si el material ya fue registrado, el grosor actualiza de inmediato
+      // la tabla y las gráficas de transmitancia/absorbancia.
+      if(!refreshCurrentMaterialIfRegistered()){
+        const preview = calcMaterialRow(state.currentMaterial, state.thickness, false);
+        updateMaterialEquation(preview);
+      }
     }
     thicknessRange.addEventListener('input', syncThickness);
     thicknessInput.addEventListener('input', syncThickness);
@@ -842,26 +897,17 @@
     materialSelect.addEventListener('change',()=>{
       state.currentMaterial=materialSelect.value;
       updateMaterialScene();
+      updateLiveLux();
+
+      if(!refreshCurrentMaterialIfRegistered()){
+        const preview = calcMaterialRow(state.currentMaterial, state.thickness, false);
+        updateMaterialEquation(preview);
+      }
     });
 
     document.getElementById('saveMaterial').addEventListener('click',()=>{
       const key = state.currentMaterial;
-      const mat = materials[key];
-      const d = state.thickness;
-      
-      const Abase = -Math.log10(mat.T);
-      const Acurrent = Abase * (d / 0.1);
-      const Tcurrent = Math.pow(10, -Acurrent);
-
-      const E0 = noise(baseE(10)); // Muestra con el mismo margen de ruido
-      let Em = noise(baseE(10) * Tcurrent);
-      if(Em < 0.1) Em = 0;
-
-      const safeEm = Math.max(Em, 0.001); // Evitar log(0)
-      const T_meas = Em / E0;
-      const Aob = Math.log10(E0 / safeEm);
-
-      state.materialData[key]={key, label:mat.label, d, E0, Em, T:T_meas, Aob, color:mat.color};
+      state.materialData[key] = calcMaterialRow(key, state.thickness, true);
       renderMaterialsTable();
       drawMaterialChart();
     });
@@ -905,7 +951,7 @@
           <td>${fmt(row.E0,1)}</td>
           <td>${fmt(row.Em,1)}</td>
           <td>${fmt(row.T*100,1)}</td>
-          <td><strong>${fmt2(row.Aob)}</strong></td>
+          <td><strong>${aobText(row)}</strong></td>
         </tr>`;
       }).join('');
     }
@@ -1100,7 +1146,8 @@
       }
 
       const cT=drawPanel(top,'Transmitancia (%) vs material','Material','T (%)',-0.6,5.6,0,100,yTickList(100,5,0),true);
-      const maxA=Math.max(1.1,...rows.map(r=>r.Aob))*1.15;
+      const finiteA = rows.map(r=>r.Aob).filter(v=>v !== null && Number.isFinite(v));
+      const maxA=Math.max(1.1,...finiteA)*1.15;
       const cA=drawPanel(bottom,'Absorbancia óptica (Aob) vs material','Material','Aob',-0.6,5.6,0,maxA,yTickList(maxA,5,2),true);
 
       if(!rows.length){
@@ -1123,20 +1170,22 @@
         ctx.fillText(fmt(row.T*100,1)+'%',x+barW/2,y-7);
 
         x=cA.xMap(i)-barW/2;
-        y=cA.yMap(row.Aob);
+        const aPlot = row.AobMax ? maxA : row.Aob;
+        y=cA.yMap(aPlot);
         bh=cA.plotB-y;
         ctx.fillStyle=row.color;
         roundRect(ctx,x,y,barW,bh,8);ctx.fill();
         ctx.strokeStyle='#111';ctx.lineWidth=1;ctx.stroke();
         ctx.fillStyle='#111';ctx.font='14px Times New Roman';ctx.textAlign='center';
-        ctx.fillText(fmt2(row.Aob),x+barW/2,y-7);
+        ctx.fillText(aobText(row),x+barW/2,y-7);
       });
 
       const last=state.materialData[state.currentMaterial];
       if(last){
-        materialEquation.innerHTML = `${last.label} (${fmt(last.d,2)}cm): T = ${fmt(last.T*100,1)}% &nbsp;&nbsp; A<sub>ob</sub> = ${fmt2(last.Aob)}`;
+        updateMaterialEquation(last);
       }else{
-        materialEquation.innerHTML = 'Resultado: registra un material.';
+        const preview = calcMaterialRow(state.currentMaterial, state.thickness, false);
+        updateMaterialEquation(preview);
       }
     }
 
