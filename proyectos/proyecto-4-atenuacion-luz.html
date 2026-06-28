@@ -3,18 +3,14 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Atenuación de la iluminancia por distancia y materiales</title>
+  <title>Características de iluminancia, transmitancia y absorbancia por distancia y material con Arduino BH1750</title>
   <style>
     :root{
-      --ink:#111;
-      --muted:#666;
-      --line:#d9d9d9;
-      --soft:#f7f7f7;
-      --paper:#fff;
-      --glass:#8ecae6;
-      --paperMat:#f3ead4;
+      --ink:#111114;
+      --muted:#666670;
+      --line:#d8d8df;
+      --accent:#7c3cff;
       --fabric:#b087b9;
-      --cotton:#f8f8f8;
       --sponge:#f2c84b;
       --cardboard:#b8793f;
     }
@@ -39,15 +35,15 @@
 
     .main-title{
       text-align:center;
-      font-size:clamp(28px,4vw,52px);
-      line-height:1.02;
+      font-size:clamp(28px,4vw,42px);
+      line-height:1.05;
       font-weight:400;
-      letter-spacing:-.8px;
+      letter-spacing:-0.5px;
       margin:4px auto 22px;
     }
 
     .sim{
-      border:1px solid #ededed;
+      border:1px solid var(--line);
       min-height:740px;
       background:#fff;
       display:grid;
@@ -64,18 +60,18 @@
     .tab{
       border:0;
       background:transparent;
-      color:#777;
+      color:var(--muted);
       font-size:20px;
       padding:8px 0;
-      border-bottom:1px solid transparent;
+      border-bottom:2px solid transparent;
       cursor:pointer;
       transition:.18s ease;
     }
 
     .tab.active,
     .tab:hover{
-      color:#111;
-      border-bottom-color:#111;
+      color:var(--ink);
+      border-bottom-color:var(--ink);
     }
 
     .scene{
@@ -84,8 +80,8 @@
       overflow:hidden;
       user-select:none;
       touch-action:none;
-      border-top:1px solid #f2f2f2;
-      border-bottom:1px solid #f2f2f2;
+      border-top:1px solid var(--line);
+      border-bottom:1px solid var(--line);
       background:
         linear-gradient(#fff,#fff),
         repeating-linear-gradient(0deg, transparent 0 23px, rgba(0,0,0,.04) 24px),
@@ -149,6 +145,10 @@
       z-index:40;
       pointer-events:none;
       white-space:nowrap;
+      background: rgba(255,255,255,0.85);
+      padding: 4px 10px;
+      border-radius: 4px;
+      border: 1px solid var(--line);
     }
 
     .sensor{
@@ -178,11 +178,11 @@
     }
 
     .sensor-fallback{
-      width:16px;
-      height:16px;
-      border-radius:50%;
+      width:28px;
+      height:28px;
+      border-radius:4px;
       border:2px solid #111;
-      background:#fff;
+      background:#2196f3;
       display:none;
     }
 
@@ -259,25 +259,23 @@
     .material-sheet{
       position:absolute;
       bottom:90px;
-      width:74px;
       height:210px;
       transform:translateX(-50%);
-      border-radius:10px;
+      border-radius:4px;
       z-index:24;
-      border:1px solid rgba(0,0,0,.18);
+      border:1px solid rgba(0,0,0,.3);
       overflow:hidden;
+      transition: width 0.2s ease;
     }
 
     .material-sheet.glass{
-      background:linear-gradient(125deg, rgba(255,255,255,.2) 0 32%, rgba(255,255,255,.8) 33% 42%, rgba(142,202,230,.45) 43% 100%);
-      border-color:rgba(28,103,132,.42);
+      background:linear-gradient(125deg, rgba(255,255,255,.2) 0 32%, rgba(255,255,255,.8) 33% 42%, rgba(142,202,230,.6) 43% 100%);
+      border-color:rgba(28,103,132,.6);
     }
-
     .material-sheet.paper{
       background:linear-gradient(135deg,#fffaf0,#efe3c8);
       border-color:#d5c7a8;
     }
-
     .material-sheet.fabric{
       background:
         repeating-linear-gradient(45deg, rgba(255,255,255,.18) 0 4px, transparent 4px 9px),
@@ -285,7 +283,6 @@
         var(--fabric);
       border-color:#76537f;
     }
-
     .material-sheet.cotton{
       background:
         radial-gradient(circle at 18% 24%, #fff 0 9px, transparent 10px),
@@ -295,7 +292,6 @@
       background-size:38px 38px,42px 42px,46px 46px,auto;
       border-color:#cfcfcf;
     }
-
     .material-sheet.sponge{
       background:
         radial-gradient(circle at 18% 20%, rgba(255,255,255,.7) 0 3px, transparent 4px),
@@ -305,7 +301,6 @@
       background-size:28px 28px,35px 35px,32px 32px,auto;
       border-color:#b28c14;
     }
-
     .material-sheet.cardboard{
       background:
         repeating-linear-gradient(90deg, rgba(90,45,15,.18) 0 5px, rgba(255,255,255,.2) 5px 11px),
@@ -354,14 +349,50 @@
       margin-bottom:12px;
     }
 
-    .btn,.select{
+    /* ESTILO DE CONTROLES UNIFICADO (Como el simulador de cuerdas) */
+    .control{
+      display:grid;
+      grid-template-columns:120px 1fr 80px;
+      gap:12px;
+      align-items:center;
+      margin-bottom:15px;
+      color:#555;
+      font-size:18px;
+    }
+    .control input[type="range"]{
+      width:100%;
+      accent-color:#111;
+    }
+    .control input[type="number"], .select{
+      width:100%;
+      border:none;
+      border-bottom:1px solid #111;
+      background:transparent;
+      outline:none;
+      font-size:18px;
+      padding:6px 2px;
+      color:#111;
+    }
+    .control-select {
+      display:grid;
+      grid-template-columns:120px 1fr;
+      gap:12px;
+      align-items:center;
+      margin-bottom:15px;
+      color:#555;
+      font-size:18px;
+    }
+
+    .btn{
       border:1px solid #111;
       background:#fff;
       color:#111;
-      font-size:17px;
+      font-size:18px;
       padding:10px 14px;
       cursor:pointer;
       min-height:42px;
+      width:100%;
+      margin-bottom: 10px;
     }
 
     .btn.primary{
@@ -369,7 +400,7 @@
       color:#fff;
     }
 
-    .btn:hover,.select:hover{
+    .btn:hover, .select:hover{
       transform:translateY(-1px);
     }
 
@@ -379,35 +410,35 @@
       line-height:1.25;
       padding:7px 0 12px;
       color:#111;
-      border-bottom:1px solid #eee;
+      border-bottom:1px solid var(--line);
       margin-bottom:10px;
     }
 
     .table-wrap{
       max-height:230px;
       overflow:auto;
-      border-top:1px solid #eee;
+      border-top:1px solid var(--line);
     }
 
     table{
       width:100%;
       border-collapse:collapse;
-      font-size:15px;
+      font-size:17px;
+      text-align: center;
     }
 
     th,td{
-      padding:9px 7px;
-      border-bottom:1px solid #eee;
-      text-align:left;
+      padding:10px 7px;
+      border-bottom:1px solid var(--line);
       white-space:nowrap;
     }
 
     th{
       font-weight:400;
-      color:#555;
+      color:#111;
       position:sticky;
       top:0;
-      background:#fff;
+      background:#f9f9fa;
       z-index:1;
     }
 
@@ -422,21 +453,23 @@
     @media(max-width:900px){
       .sim{grid-template-rows:auto 430px auto;}
       .controls{grid-template-columns:1fr;}
-      .main-title{font-size:32px;}
+      .main-title{font-size:26px;}
       .tabs{gap:26px;}
       .chart-shell{height:500px;}
       .lux-readout{font-size:30px;}
+      .control{grid-template-columns:1fr;}
+      .control-select{grid-template-columns:1fr;}
     }
   </style>
 </head>
 <body>
   <main class="page">
-    <h1 class="main-title">Atenuación de la iluminancia por distancia y materiales</h1>
+    <h1 class="main-title">Características de iluminancia, transmitancia y absorbancia por distancia de material y con Arduino BH1750</h1>
 
     <section class="sim">
       <nav class="tabs" aria-label="Fases del simulador">
-        <button class="tab active" data-phase="distance">Distancia</button>
-        <button class="tab" data-phase="materials">Materiales</button>
+        <button class="tab active" data-phase="distance">1. Estudio por Distancia</button>
+        <button class="tab" data-phase="materials">2. Estudio por Material y Grosor</button>
       </nav>
 
       <section class="scene" id="distanceScene">
@@ -444,10 +477,9 @@
         <div class="source-zero-mark" id="zeroMarkDistance"></div>
         <div class="source-point" id="sourceDistance"></div>
         <div class="distance-guide" id="distanceGuide"></div>
-        <div class="lux-readout" id="luxDistance">900 lux</div>
-        <div class="sensor" id="sensorDistance" title="">
-          <!-- Reemplaza este archivo por tu imagen del sensor BH1750 -->
-          <img id="sensorImgDistance" src="../assets/sensores/bh1750.png?v=4" alt="Sensor BH1750" draggable="false" />
+        <div class="lux-readout" id="luxDistance">900,0 lux</div>
+        <div class="sensor" id="sensorDistance" title="Arrastra el sensor">
+          <img id="sensorImgDistance" src="../assets/sensores/bh1750.png" alt="Sensor BH1750" draggable="false" onerror="this.style.display='none'; document.getElementById('fallbackDistance').style.display='block';"/>
           <div class="sensor-fallback" id="fallbackDistance"></div>
         </div>
         <div class="distance-value" id="distanceValue">30,0 cm</div>
@@ -460,34 +492,31 @@
         <div class="source-point" id="sourceMaterial"></div>
         <div class="material-sheet paper" id="materialSheet"></div>
         <div class="material-name" id="materialName">Hoja de papel</div>
-        <div class="lux-readout" id="luxMaterial">420 lux</div>
+        <div class="lux-readout" id="luxMaterial">420,0 lux</div>
         <div class="sensor fixed" id="sensorMaterial">
-          <!-- Reemplaza este archivo por tu imagen del sensor BH1750 -->"
-           <img 
-    id="sensorImgMaterial" 
-    src="../assets/sensores/bh1750.png?v=5" 
-    alt="Sensor BH1750"
-    onerror="this.style.display='none'; document.getElementById('fallbackMaterial').style.display='block';"
-  />
-  <div class="sensor-fallback" id="fallbackMaterial"></div>
-</div>
+          <img id="sensorImgMaterial" src="../assets/sensores/bh1750.png" alt="Sensor BH1750" onerror="this.style.display='none'; document.getElementById('fallbackMaterial').style.display='block';"/>
           <div class="sensor-fallback" id="fallbackMaterial"></div>
         </div>
-        <div class="fixed-note">5 cm + 5 cm</div>
+        <div class="fixed-note">5.0 cm</div>
         <div class="ruler" id="rulerMaterial"><div class="ruler-line"></div><div class="unit-label">(cm)</div></div>
       </section>
 
       <section class="controls">
         <div class="panel" id="distancePanel">
-          <div class="control-row">
-            <button class="btn primary" id="saveDistance">Registrar</button>
-            <button class="btn" id="clearDistance">Limpiar</button>
+          <div class="control-select">
+            <span>Tipo de Gráfica</span>
             <select class="select" id="distanceChartMode">
-              <option value="normal">E vs r</option>
-              <option value="linear">E vs 1/r²</option>
+              <option value="normal">Curva E vs r</option>
+              <option value="linear">Regresión Lineal E vs 1/r²</option>
             </select>
           </div>
-          <div class="equation" id="distanceEquation">Registra al menos dos distancias.</div>
+          
+          <div style="display:flex; gap:10px;">
+            <button class="btn primary" id="saveDistance">Tomar Dato</button>
+            <button class="btn" id="clearDistance">Limpiar</button>
+          </div>
+          
+          <div class="equation" id="distanceEquation">Mueve el sensor y registra datos.</div>
           <div class="table-wrap">
             <table>
               <thead>
@@ -512,7 +541,8 @@
         </div>
 
         <div class="panel hidden" id="materialsPanel">
-          <div class="control-row">
+          <div class="control-select">
+            <span>Material</span>
             <select class="select" id="materialSelect">
               <option value="glass">Vidrio</option>
               <option value="paper" selected>Hoja de papel</option>
@@ -521,15 +551,26 @@
               <option value="sponge">Esponja</option>
               <option value="cardboard">Cartón</option>
             </select>
-            <button class="btn primary" id="saveMaterial">Registrar</button>
+          </div>
+
+          <div class="control">
+            <span>Grosor (cm)</span>
+            <input type="range" id="thicknessRange" min="0.05" max="1.0" step="0.05" value="0.1">
+            <input type="number" id="thicknessInput" min="0.05" max="1.0" step="0.05" value="0.1">
+          </div>
+
+          <div style="display:flex; gap:10px;">
+            <button class="btn primary" id="saveMaterial">Tomar Dato</button>
             <button class="btn" id="clearMaterials">Limpiar</button>
           </div>
-          <div class="equation" id="materialEquation">Resultado: registra un material.</div>
+          
+          <div class="equation" id="materialEquation">Resultado: selecciona un material.</div>
           <div class="table-wrap">
             <table>
               <thead>
                 <tr>
                   <th>Material</th>
+                  <th>Grosor</th>
                   <th>E₀ (lux)</th>
                   <th>Eₘ (lux)</th>
                   <th>T (%)</th>
@@ -548,6 +589,7 @@
     const state = {
       phase:'distance',
       r:30,
+      thickness:0.1,
       distanceData:{},
       materialData:{},
       currentMaterial:'paper'
@@ -557,14 +599,11 @@
     const maxR = 100;
     const stepR = 0.5;
 
-    // Modelo de iluminancia simulado: E = k/r^2 + Eamb. r en cm.
     const Eambient = 8.5;
     const kLux = 80000;
 
+    // Transmitancia base (T) a un grosor de referencia de 0.1 cm
     const materials = {
-      // Transmitancia ajustada según observación experimental:
-      // vidrio atenúa poco; papel, algodón y cartón casi bloquean la luz;
-      // tela/pañuelo bloquea mucho; esponja bloquea menos que la tela.
       glass:{label:'Vidrio', cls:'glass', T:0.88, color:'#8ecae6'},
       paper:{label:'Hoja de papel', cls:'paper', T:0.02, color:'#d8bd7a'},
       fabric:{label:'Tela', cls:'fabric', T:0.05, color:'#b087b9'},
@@ -593,6 +632,9 @@
     const distanceGuide = document.getElementById('distanceGuide');
     const distanceValue = document.getElementById('distanceValue');
 
+    const thicknessRange = document.getElementById('thicknessRange');
+    const thicknessInput = document.getElementById('thicknessInput');
+
     const distanceEquation = document.getElementById('distanceEquation');
     const materialEquation = document.getElementById('materialEquation');
     const distanceTable = document.getElementById('distanceTable');
@@ -613,17 +655,15 @@
     function keyR(r){return Number(r).toFixed(1);}
 
     function baseE(r){return kLux/(r*r) + Eambient;}
-    function noise(v,p=0.025){return Math.max(0.01, v*(1+(Math.random()*2-1)*p));}
-    function avg(a){return a.reduce((s,x)=>s+x,0)/a.length;}
-
-    function showFallback(imgId,fallbackId){
-      const img = document.getElementById(imgId);
-      const fb = document.getElementById(fallbackId);
-      img.onerror = () => { img.style.display='none'; fb.style.display='block'; };
+    
+    // Función de ruido: Mantiene el número base intacto y solo oscila aleatoriamente las décimas
+    function noise(v){ 
+      if(v < 0.1) return 0;
+      // Añade una variación de entre -0.4 y +0.4 lux para afectar solo las décimas
+      return Math.max(0, v + (Math.random() * 0.8 - 0.4));
     }
-
-    showFallback('sensorImgDistance','fallbackDistance');
-    showFallback('sensorImgMaterial','fallbackMaterial');
+    
+    function avg(a){return a.reduce((s,x)=>s+x,0)/a.length;}
 
     function sceneMetrics(scene,ruler){
       const sr = scene.getBoundingClientRect();
@@ -669,6 +709,29 @@
       }
     }
 
+    // Bucle de Animación para fluctuaciones del sensor (Mili oscilaciones constantes en las décimas)
+    const luxUpdateIntervalMs = 1000; // Cambia a 100 si quieres lecturas cada 0,1 s.
+
+    function updateLiveLux() {
+      if (state.phase === 'distance') {
+        const base = baseE(state.r);
+        const live = noise(base); 
+        luxDistance.textContent = fmt(live, 1) + ' lux';
+      } else {
+        const base = baseE(10);
+        const mat = materials[state.currentMaterial];
+        const d = state.thickness;
+        const Abase = -Math.log10(mat.T);
+        const Acurrent = Abase * (d / 0.1); // Ley de Beer-Lambert por grosor
+        const Tcurrent = Math.pow(10, -Acurrent);
+        const Em = base * Tcurrent;
+        const live = noise(Em);
+        luxMaterial.textContent = fmt(live, 1) + ' lux';
+      }
+    }
+    updateLiveLux();
+    setInterval(updateLiveLux, luxUpdateIntervalMs);
+
     function updateDistanceScene(){
       const r = state.r;
       const p0 = rToPercent(0);
@@ -679,7 +742,6 @@
       setLeft(luxDistance,pr);
       setLeft(distanceValue,pr);
       distanceValue.textContent = fmt(r,1)+' cm';
-      luxDistance.textContent = fmt(baseE(r),0)+' lux';
 
       const leftPx = rToScenePx(0,distanceScene,rulerDistance,100);
       const rightPx = rToScenePx(r,distanceScene,rulerDistance,100);
@@ -702,11 +764,21 @@
 
       materialSheet.className = 'material-sheet '+mat.cls;
       materialName.textContent = mat.label;
-
-      const E0 = baseE(10);
-      const Em = E0 * mat.T;
-      luxMaterial.textContent = fmt(Em,0)+' lux';
+      
+      // Actualizar representación visual del grosor (4px mínimo + escala visual)
+      const visualWidth = Math.max(4, state.thickness * 100);
+      materialSheet.style.width = visualWidth + 'px';
     }
+
+    // Sincronización del Slider de Grosor estilo control
+    function syncThickness(e) {
+      state.thickness = Number(e.target.value);
+      thicknessRange.value = state.thickness;
+      thicknessInput.value = state.thickness;
+      updateMaterialScene();
+    }
+    thicknessRange.addEventListener('input', syncThickness);
+    thicknessInput.addEventListener('input', syncThickness);
 
     function switchPhase(phase){
       state.phase = phase;
@@ -734,20 +806,17 @@
       updateDistanceScene();
       e.preventDefault();
     }
-
     function moveDistanceDrag(e){
       if(!dragging || state.phase !== 'distance') return;
       state.r = pointerToR(e.clientX);
       updateDistanceScene();
       e.preventDefault();
     }
-
     function stopDistanceDrag(e){
       dragging = false;
       try{ distanceScene.releasePointerCapture(e.pointerId); }catch(err){}
     }
 
-    // Ahora puedes mover el sensor arrastrando el sensor o tocando cualquier punto de la regla.
     distanceScene.addEventListener('pointerdown', startDistanceDrag);
     distanceScene.addEventListener('pointermove', moveDistanceDrag);
     distanceScene.addEventListener('pointerup', stopDistanceDrag);
@@ -778,11 +847,21 @@
     document.getElementById('saveMaterial').addEventListener('click',()=>{
       const key = state.currentMaterial;
       const mat = materials[key];
-      const E0 = noise(baseE(10),0.015);
-      const Em = noise(E0*mat.T,0.025);
-      const T = Em/E0;
-      const Aob = Math.log10(E0/Em);
-      state.materialData[key]={key,label:mat.label,E0,Em,T,Aob,color:mat.color};
+      const d = state.thickness;
+      
+      const Abase = -Math.log10(mat.T);
+      const Acurrent = Abase * (d / 0.1);
+      const Tcurrent = Math.pow(10, -Acurrent);
+
+      const E0 = noise(baseE(10)); // Muestra con el mismo margen de ruido
+      let Em = noise(baseE(10) * Tcurrent);
+      if(Em < 0.1) Em = 0;
+
+      const safeEm = Math.max(Em, 0.001); // Evitar log(0)
+      const T_meas = Em / E0;
+      const Aob = Math.log10(E0 / safeEm);
+
+      state.materialData[key]={key, label:mat.label, d, E0, Em, T:T_meas, Aob, color:mat.color};
       renderMaterialsTable();
       drawMaterialChart();
     });
@@ -810,7 +889,7 @@
           <td>${row.arr[0]!==undefined?fmt(row.arr[0],1):'—'}</td>
           <td>${row.arr[1]!==undefined?fmt(row.arr[1],1):'—'}</td>
           <td>${row.arr[2]!==undefined?fmt(row.arr[2],1):'—'}</td>
-          <td>${row.mean!==null?fmt(row.mean,1):'—'}</td>
+          <td><strong>${row.mean!==null?fmt(row.mean,1):'—'}</strong></td>
           <td>${fmt4(row.x)}</td>
         </tr>`).join('') : `<tr><td colspan="6">—</td></tr>`;
     }
@@ -819,13 +898,14 @@
       const order=['glass','paper','fabric','cotton','sponge','cardboard'];
       materialsTable.innerHTML = order.map(key=>{
         const row = state.materialData[key];
-        if(!row) return `<tr><td>${materials[key].label}</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>`;
+        if(!row) return `<tr><td>${materials[key].label}</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>`;
         return `<tr>
           <td>${row.label}</td>
+          <td>${fmt(row.d,2)}</td>
           <td>${fmt(row.E0,1)}</td>
           <td>${fmt(row.Em,1)}</td>
           <td>${fmt(row.T*100,1)}</td>
-          <td>${fmt2(row.Aob)}</td>
+          <td><strong>${fmt2(row.Aob)}</strong></td>
         </tr>`;
       }).join('');
     }
@@ -928,7 +1008,6 @@
       const points = rows.map(r=>({x:1/(r.r*r.r),y:r.mean}));
       const fit = linearFit(points);
       if(fit){
-        // La curva aparece solo después de registrar datos suficientes.
         ctx.strokeStyle='#111';ctx.lineWidth=2;
         ctx.beginPath();
         for(let r=minR;r<=maxR;r+=0.5){
@@ -1055,7 +1134,7 @@
 
       const last=state.materialData[state.currentMaterial];
       if(last){
-        materialEquation.innerHTML = `${last.label}: T = ${fmt(last.T*100,1)}% &nbsp;&nbsp; A<sub>ob</sub> = ${fmt2(last.Aob)}`;
+        materialEquation.innerHTML = `${last.label} (${fmt(last.d,2)}cm): T = ${fmt(last.T*100,1)}% &nbsp;&nbsp; A<sub>ob</sub> = ${fmt2(last.Aob)}`;
       }else{
         materialEquation.innerHTML = 'Resultado: registra un material.';
       }
