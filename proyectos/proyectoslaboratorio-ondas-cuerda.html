@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Simulador | Ondas Transversales 2D</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+:root{
+  --ink:#111114;
+  --muted:#666670;
+  --line:#d8d8df;
+  --accent:#7c3cff;
+}
+*{
+  box-sizing:border-box;
+  margin:0;
+  padding:0
+}
+body{
+  min-height:100vh;
+  background:#fff;
+  color:var(--ink);
+  font-family:"Times New Roman", Times, serif;
+}
+input, select, button{font-family:"Times New Roman", Times, serif}
+.page{
+  width:min(1120px,100%);
+  margin:0 auto;
+  padding:34px 24px 34px;
+  display:grid;
+  gap:22px;
+}
+h1{
+  font-size:clamp(36px,5vw,62px);
+  font-weight:400;
+  line-height:.95;
+  letter-spacing:-1.2px;
+}
+.scene{
+  position:relative;
+  height:390px;
+  border-bottom:1px solid var(--line);
+  overflow:hidden;
+  background:#fff;
+}
+#waveCanvas{
+  width:100%;
+  height:100%;
+  display:block;
+}
+.state{
+  position:absolute;
+  right:22px;
+  top:18px;
+  width:210px;
+  border-bottom:1px solid var(--line);
+  padding-bottom:6px;
+  background: rgba(255,255,255,0.8);
+  z-index: 10;
+}
+.state small{
+  display:block;
+  color:#666;
+  font-size:15px;
+  margin-bottom:4px;
+}
+.state strong{
+  font-size:24px;
+  font-weight:400;
+}
+.controls{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:28px;
+  align-items:start;
+}
+.panel h2{
+  font-size:28px;
+  font-weight:400;
+  margin-bottom:14px;
+}
+.control{
+  display:grid;
+  grid-template-columns:140px 1fr 90px;
+  gap:12px;
+  align-items:center;
+  margin-bottom:15px;
+  color:#555;
+  font-size:18px;
+}
+.control-select {
+  display:grid;
+  grid-template-columns:140px 1fr;
+  gap:12px;
+  align-items:center;
+  margin-bottom:15px;
+  color:#555;
+  font-size:18px;
+}
+.control input[type="range"]{
+  width:100%;
+  accent-color:#111;
+}
+.control input[type="number"], .control-select select, .custom-input{
+  width:100%;
+  border:none;
+  border-bottom:1px solid #111;
+  background:transparent;
+  outline:none;
+  font-size:18px;
+  padding:6px 2px;
+  color:#111;
+}
+.custom-box {
+  display: none;
+  margin-left: 152px;
+  margin-bottom: 15px;
+  font-size: 16px;
+  color: #666;
+}
+.custom-input { width: 80px; font-size: 16px;}
+.btn {
+  background: var(--ink);
+  color: #fff;
+  border: none;
+  padding: 10px 16px;
+  font-size: 18px;
+  cursor: pointer;
+  width: 100%;
+  margin-top: 10px;
+}
+.btn:hover { background: #333; }
+.results{
+  display:grid;
+  grid-template-columns:repeat(2,1fr);
+  gap:14px;
+}
+.card{
+  border-bottom:1px solid var(--line);
+  padding:10px 0;
+}
+.card small{
+  display:block;
+  color:#666;
+  font-size:14px;
+  margin-bottom:4px;
+}
+.card strong{
+  font-size:24px;
+  font-weight:400;
+}
+
+/* Sección de Datos y Gráficos */
+.data-section {
+  margin-top: 20px;
+  border-top: 1px solid var(--line);
+  padding-top: 20px;
+}
+.data-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+.data-header h3 { font-size: 24px; font-weight: 400; }
+.table-container { overflow-x: auto; margin-bottom: 20px; }
+table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: center;
+  font-size: 18px;
+}
+th, td { border: 1px solid var(--line); padding: 10px; }
+th { background: #f9f9fa; font-weight: 400; }
+.graph-container {
+  width: 100%;
+  height: 350px;
+  background: #fff;
+  border: 1px solid var(--line);
+  padding: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@media(max-width:920px){
+  .scene{height:300px}
+  .state{
+    position:relative;
+    right:auto;
+    top:auto;
+    width:100%;
+    margin-top:14px;
+  }
+  .controls{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+<main class="page">
+  <header>
+    <h1>Resonancia Ondas Transversales</h1>
+  </header>
+
+  <section class="scene">
+    <canvas id="waveCanvas"></canvas>
+    <div class="state">
+      <small>Estado</small>
+      <strong id="stateRead">—</strong>
+    </div>
+  </section>
+
+  <section class="controls">
+    <div class="panel">
+      <h2>Datos</h2>
+
+      <div class="control-select">
+        <span>Material</span>
+        <select id="materialSelect">
+          <option value="polyester" data-mu="0.00014" selected>Hilo de Poliéster</option>
+          <option value="cotton" data-mu="0.00031">Hilo de Algodón</option>
+          <option value="nylon" data-mu="0.00088">Hilo de Nylon</option>
+          <option value="custom">Personalizado...</option>
+        </select>
+      </div>
+      
+      <div class="custom-box" id="customBox">
+        Masa (kg): <input type="number" id="customMass" class="custom-input" value="0.00150" step="0.00001"> | 
+        Longitud (m): <input type="number" id="customLength" class="custom-input" value="2.42" step="0.01">
+      </div>
+
+      <div class="control">
+        <span>Masa (g)</span>
+        <input id="massRange" type="range" min="30" max="500" step="1" value="248">
+        <input id="massInput" type="number" min="30" max="500" step="1" value="248">
+      </div>
+
+      <div class="control">
+        <span>Frecuencia (Hz)</span>
+        <input id="freqRange" type="range" min="10" max="250" step="0.1" value="130.0">
+        <input id="freqInput" type="number" min="10" max="250" step="0.1" value="130.0">
+      </div>
+
+      <button class="btn" id="btnRecord">Tomar Dato (Tabla 1)</button>
+    </div>
+
+    <div class="panel">
+      <h2>Resultados</h2>
+
+      <div class="results">
+        <div class="card"><small>Tensión aplicada</small><strong id="tensionRead">—</strong></div>
+        <div class="card"><small>Período</small><strong id="periodRead">—</strong></div>
+        <div class="card"><small>λ del modo</small><strong id="lambdaRead">—</strong></div>
+        <div class="card"><small>Armónicos visibles</small><strong id="harmonicsRead">—</strong></div>
+        <div class="card"><small>Nodos visibles</small><strong id="nodesRead">—</strong></div>
+        <div class="card"><small>Antinodos visibles</small><strong id="antinodesRead">—</strong></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="data-section">
+    <div class="data-header">
+      <h3>Tabla 1: Variación de Tensión con Material Constante</h3>
+      <button class="btn" style="width: auto; padding: 6px 16px; margin: 0; background: #fff; color: #111; border: 1px solid #111;" onclick="clearTable()">Limpiar</button>
+    </div>
+    
+    <div class="table-container">
+      <table id="mainTable">
+        <thead>
+          <tr>
+            <th>Masa (g)</th>
+            <th>Tensión T (N)</th>
+            <th>f (Hz)</th>
+            <th>Modo (n)</th>
+            <th>λ (m)</th>
+            <th>Velocidad (m/s)</th>
+            <th>v² (m²/s²)</th>
+          </tr>
+        </thead>
+        <tbody>
+          </tbody>
+      </table>
+    </div>
+
+    <div class="graph-container" id="chartContainer">
+      <canvas id="mainChart"></canvas>
+    </div>
+  </section>
+</main>
+
+<script>
+// --- CONFIGURACIÓN GRÁFICOS CHART.JS ---
+let mainChart = null;
+
+try {
+  Chart.defaults.font.family = "'Times New Roman', Times, serif";
+  Chart.defaults.font.size = 14;
+  Chart.defaults.color = '#111';
+
+  let ctx = document.getElementById('mainChart').getContext('2d');
+  mainChart = new Chart(ctx, {
+    type: 'scatter',
+    data: {
+      datasets: [{
+        label: 'Datos experimentales',
+        data: [],
+        backgroundColor: '#111',
+        pointRadius: 5
+      }, {
+        label: 'Ajuste Lineal',
+        data: [],
+        type: 'line',
+        borderColor: 'rgba(124, 60, 255, 0.8)',
+        borderWidth: 2,
+        fill: false,
+        pointRadius: 0
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        title: { display: true, text: 'Velocidad al Cuadrado (v²) vs Tensión (T)', font:{size: 18, weight: '400'} },
+        subtitle: { display: true, text: 'Ecuación: v² = m(T) | R² = 0.00' }
+      },
+      scales: {
+        x: { title: { display: true, text: 'Tensión T (N)', font:{weight: 'bold'} } },
+        y: { title: { display: true, text: 'v² (m²/s²)', font:{weight: 'bold'} } }
+      }
+    }
+  });
+} catch (error) {
+  document.getElementById('chartContainer').innerHTML = "<p style='color:#666; text-align:center;'>No se pudo cargar la librería de gráficos (Chart.js). Verifique su conexión a internet.</p>";
+}
+
+// --- VARIABLES FÍSICAS Y UI ---
+const GRAVITY = 9.8;
+const L_EFFECTIVE = 1.15; // Metros
+let experimentData = [];
+
+// Elementos UI
+const matSelect = document.getElementById('materialSelect');
+const customBox = document.getElementById('customBox');
+const customMass = document.getElementById('customMass');
+const customLength = document.getElementById('customLength');
+
+const massRange = document.getElementById('massRange');
+const massInput = document.getElementById('massInput');
+const freqRange = document.getElementById('freqRange');
+const freqInput = document.getElementById('freqInput');
+
+const stateRead = document.getElementById('stateRead');
+const tensionRead = document.getElementById('tensionRead');
+const periodRead = document.getElementById('periodRead');
+const lambdaRead = document.getElementById('lambdaRead');
+const harmonicsRead = document.getElementById('harmonicsRead');
+const nodesRead = document.getElementById('nodesRead');
+const antinodesRead = document.getElementById('antinodesRead');
+
+// Sincronización de inputs
+function sync(source, target) { target.value = source.value; updatePhysics(); }
+massRange.addEventListener('input', () => sync(massRange, massInput));
+massInput.addEventListener('input', () => sync(massInput, massRange));
+freqRange.addEventListener('input', () => sync(freqRange, freqInput));
+freqInput.addEventListener('input', () => sync(freqInput, freqRange));
+
+matSelect.addEventListener('change', () => {
+  customBox.style.display = matSelect.value === 'custom' ? 'block' : 'none';
+  updatePhysics();
+});
+customMass.addEventListener('input', updatePhysics);
+customLength.addEventListener('input', updatePhysics);
+
+// Formateo numérico
+function fmt(n, d=2){ return Number(n).toFixed(d).replace('.', ','); }
+
+// Cálculo de propiedades actuales
+function getCurrentPhysics() {
+  let mu = 0;
+  if (matSelect.value === 'custom') {
+    mu = Number(customMass.value) / Number(customLength.value);
+  } else {
+    mu = Number(matSelect.options[matSelect.selectedIndex].dataset.mu);
+  }
+
+  const massKg = Number(massInput.value) / 1000;
+  const T = massKg * GRAVITY;
+  const v_teo = Math.sqrt(T / mu);
+  const f_user = Number(freqInput.value);
+
+  // Determinar el armónico más cercano (n)
+  const n_float = (2 * L_EFFECTIVE * f_user) / v_teo;
+  const n = Math.max(1, Math.round(n_float));
+  const f_res = (n * v_teo) / (2 * L_EFFECTIVE);
+  
+  // Nivel de resonancia
+  const error = Math.abs(f_user - f_res) / f_res;
+  const isResonant = error < 0.02;
+  const isClose = error < 0.08;
+
+  return { mu, massKg, T, v_teo, f_user, n, f_res, isResonant, isClose };
+}
+
+function updatePhysics() {
+  const p = getCurrentPhysics();
+  
+  tensionRead.textContent = fmt(p.T) + " N";
+  periodRead.textContent = fmt(1 / p.f_user, 3) + " s";
+
+  if (p.isResonant) {
+    stateRead.textContent = 'Resonancia';
+    stateRead.style.color = 'var(--accent)';
+    lambdaRead.textContent = fmt((2 * L_EFFECTIVE) / p.n) + ' m';
+    harmonicsRead.textContent = p.n;
+    nodesRead.textContent = p.n + 1;
+    antinodesRead.textContent = p.n;
+  } else if (p.isClose) {
+    stateRead.textContent = 'Cerca';
+    stateRead.style.color = '#111';
+    lambdaRead.textContent = '—';
+    harmonicsRead.textContent = '—';
+    nodesRead.textContent = '—';
+    antinodesRead.textContent = '—';
+  } else {
+    stateRead.textContent = 'Sin resonancia';
+    stateRead.style.color = '#111';
+    lambdaRead.textContent = '—';
+    harmonicsRead.textContent = '—';
+    nodesRead.textContent = '—';
+    antinodesRead.textContent = '—';
+  }
+}
+
+// Regresión Lineal
+function linearRegression(x, y) {
+  let n = x.length;
+  let sum_x = 0, sum_y = 0, sum_xy = 0, sum_xx = 0;
+  for (let i = 0; i < n; i++) {
+    sum_x += x[i]; sum_y += y[i];
+    sum_xy += x[i] * y[i];
+    sum_xx += x[i] * x[i];
+  }
+  let slope = (n * sum_xy - sum_x * sum_y) / (n * sum_xx - sum_x * sum_x);
+  let intercept = (sum_y - slope * sum_x) / n;
+  
+  let y_mean = sum_y / n;
+  let ss_tot = 0, ss_res = 0;
+  for (let i = 0; i < n; i++) {
+    let y_pred = slope * x[i] + intercept;
+    ss_tot += Math.pow(y[i] - y_mean, 2);
+    ss_res += Math.pow(y[i] - y_pred, 2);
+  }
+  let r2 = 1 - (ss_res / ss_tot);
+
+  return { slope, intercept, r2 };
+}
+
+document.getElementById('btnRecord').addEventListener('click', () => {
+  const p = getCurrentPhysics();
+  if(!p.isResonant) {
+    alert("¡Ajuste la frecuencia hasta lograr resonancia antes de tomar el dato!");
+    return;
+  }
+  
+  const lambda = (2 * L_EFFECTIVE) / p.n;
+  const v_exp = p.f_user * lambda;
+  const v2 = v_exp * v_exp;
+
+  experimentData.push({
+    mass: p.massKg * 1000, T: p.T, f: p.f_user, n: p.n, lambda: lambda, v: v_exp, v2: v2
+  });
+  renderTable();
+});
+
+function renderTable() {
+  const tbody = document.querySelector('#mainTable tbody');
+  tbody.innerHTML = '';
+  let xVals = [], yVals = [], scatterData = [];
+
+  experimentData.forEach(d => {
+    tbody.innerHTML += `<tr>
+      <td>${fmt(d.mass, 0)}</td>
+      <td>${fmt(d.T, 2)}</td>
+      <td>${fmt(d.f, 1)}</td>
+      <td>${d.n}</td>
+      <td>${fmt(d.lambda, 2)}</td>
+      <td>${fmt(d.v, 2)}</td>
+      <td>${fmt(d.v2, 2)}</td>
+    </tr>`;
+    xVals.push(d.T);
+    yVals.push(d.v2);
+    scatterData.push({x: d.T, y: d.v2});
+  });
+
+  if (mainChart !== null) {
+    mainChart.data.datasets[0].data = scatterData;
+
+    if (xVals.length > 1) {
+      const reg = linearRegression(xVals, yVals);
+      let lineData = [];
+      let minX = Math.min(...xVals) * 0.9;
+      let maxX = Math.max(...xVals) * 1.1;
+      lineData.push({x: minX, y: reg.slope * minX + reg.intercept});
+      lineData.push({x: maxX, y: reg.slope * maxX + reg.intercept});
+      
+      mainChart.data.datasets[1].data = lineData;
+      mainChart.options.plugins.subtitle.text = `Ecuación: v² = ${fmt(reg.slope,2)}T | R² = ${fmt(reg.r2, 3)}`;
+    } else {
+      mainChart.data.datasets[1].data = [];
+      mainChart.options.plugins.subtitle.text = `Agregue más puntos para la regresión.`;
+    }
+    mainChart.update();
+  }
+}
+
+function clearTable() { experimentData = []; renderTable(); }
+
+// --- MOTOR DE RENDERIZADO 2D (CANVAS) ---
+const canvas = document.getElementById('waveCanvas');
+const ctx = canvas.getContext('2d');
+let time = 0;
+
+function resizeCanvas() {
+  canvas.width = canvas.parentElement.clientWidth;
+  canvas.height = canvas.parentElement.clientHeight;
+}
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
+
+function drawApparatus(w, h, p) {
+  const midY = h / 2 + 10;
+  
+  // 1. Generador de funciones
+  ctx.fillStyle = '#f4f4f4';
+  ctx.fillRect(30, midY - 30, 110, 60);
+  ctx.strokeStyle = '#111'; ctx.lineWidth = 1.5;
+  ctx.strokeRect(30, midY - 30, 110, 60);
+  
+  ctx.fillStyle = '#111';
+  ctx.fillRect(40, midY - 20, 60, 25);
+  ctx.fillStyle = '#fff';
+  ctx.font = "14px 'Times New Roman'";
+  ctx.textAlign = "center";
+  ctx.fillText(p.f_user.toFixed(1), 70, midY - 4);
+
+  // 2. Vibrador mecánico
+  ctx.fillStyle = '#333';
+  ctx.fillRect(160, midY - 15, 30, 30);
+  ctx.fillRect(170, midY + 15, 10, 60);
+  ctx.fillRect(150, midY + 75, 50, 10);
+  
+  ctx.strokeStyle = '#888';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(190, midY);
+  ctx.lineTo(210, midY);
+  ctx.stroke();
+
+  // 3. Soporte y polea
+  const pulleyX = w - 100;
+  ctx.fillStyle = '#333';
+  ctx.fillRect(pulleyX + 15, midY - 40, 10, 120);
+  ctx.fillRect(pulleyX - 10, midY + 80, 60, 10);
+  
+  ctx.beginPath();
+  ctx.arc(pulleyX, midY, 15, 0, Math.PI * 2);
+  ctx.fillStyle = '#eee';
+  ctx.fill();
+  ctx.strokeStyle = '#111';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(pulleyX, midY, 3, 0, Math.PI * 2);
+  ctx.fillStyle = '#111';
+  ctx.fill();
+
+  // 4. Masa colgante
+  const massY = midY + 60;
+  const massSize = Math.min(60, 20 + (p.massKg / 0.5) * 30);
+  
+  ctx.beginPath();
+  ctx.moveTo(pulleyX + 15, midY);
+  ctx.lineTo(pulleyX + 15, massY);
+  ctx.strokeStyle = '#111';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+  
+  ctx.fillStyle = '#555';
+  ctx.fillRect(pulleyX + 15 - 15, massY, 30, massSize);
+  ctx.strokeStyle = '#222';
+  for(let i=1; i<5; i++){
+    let step = massSize/5;
+    ctx.beginPath();
+    ctx.moveTo(pulleyX + 15 - 15, massY + i*step);
+    ctx.lineTo(pulleyX + 15 + 15, massY + i*step);
+    ctx.stroke();
+  }
+
+  return { x0: 210, x1: pulleyX, y: midY };
+}
+
+function drawString(dom, p) {
+  const width = dom.x1 - dom.x0;
+  const numPoints = 300;
+  const freqRad = 2 * Math.PI * p.f_user;
+  
+  const dist = Math.abs(p.f_user - p.f_res);
+  let A_max = 50;
+  let A_standing = A_max / (1 + 10 * dist); 
+  
+  ctx.beginPath();
+  for (let i = 0; i <= numPoints; i++) {
+    const u = i / numPoints;
+    const px = dom.x0 + u * width;
+    
+    let py = dom.y;
+    if (p.isResonant || dist < 20) {
+      let wave = Math.sin(p.n * Math.PI * u) * Math.cos(freqRad * time);
+      py += A_standing * wave;
+    } else {
+      let noise = (Math.random() - 0.5) * 4;
+      py += noise;
+    }
+
+    if (i === 0) ctx.moveTo(px, py);
+    else ctx.lineTo(px, py);
+  }
+
+  ctx.strokeStyle = p.isResonant ? 'var(--accent)' : '#111';
+  ctx.lineWidth = 2.5;
+  ctx.lineJoin = 'round';
+  ctx.stroke();
+}
+
+function animate() {
+  const w = canvas.width;
+  const h = canvas.height;
+  ctx.clearRect(0, 0, w, h);
+
+  const p = getCurrentPhysics();
+  const dom = drawApparatus(w, h, p);
+  
+  ctx.beginPath();
+  ctx.moveTo(dom.x0, dom.y);
+  ctx.lineTo(dom.x1, dom.y);
+  ctx.strokeStyle = '#d8d8df';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
+  drawString(dom, p);
+
+  time += 0.008;
+  requestAnimationFrame(animate);
+}
+
+// Inicializar
+updatePhysics();
+requestAnimationFrame(animate);
+
+</script>
+</body>
+</html>
